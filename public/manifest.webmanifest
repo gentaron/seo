@@ -1,0 +1,13 @@
+{
+  "name": "サジェスト・レーダー｜日本語SEOキーワード探索",
+  "short_name": "サジェレーダー",
+  "description": "複数の検索エンジンのサジェストを一括取得し、日本語SEOのキーワード調査を行うツール。",
+  "lang": "ja",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#0a0d14",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

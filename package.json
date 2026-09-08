@@ -1,0 +1,26 @@
+{
+  "name": "suggest-radar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "日本語圏に最適化したリアルタイムSEOキーワード・サジェスト探索ツール（Netlify Functions + 静的フロント）",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "netlify dev",
+    "serve": "node scripts/devserver.mjs",
+    "serve:mock": "node scripts/devserver.mjs --mock",
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.js",
+    "uicheck": "node scripts/uicheck.mjs"
+  },
+  "keywords": [
+    "seo",
+    "keyword",
+    "suggest",
+    "japanese",
+    "netlify"
+  ],
+  "license": "MIT"
+}

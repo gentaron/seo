@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------
+# Suggest Radar — Netlify 設定
+# publish: 静的ファイル / functions: サジェスト取得プロキシ
+# ---------------------------------------------------------------
+[build]
+  publish   = "public"
+  functions = "netlify/functions"
+  command   = "node scripts/build.mjs"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+# /api/* を Functions にマッピング（v1/v2 どちらのランタイムでも動作）
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/:splat"
+  status = 200
+  force  = true
+
+# SPA ではないが、未知パスはトップへ
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options    = "nosniff"
+    X-Frame-Options           = "SAMEORIGIN"
+    Referrer-Policy           = "strict-origin-when-cross-origin"
+    Permissions-Policy        = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+[[headers]]
+  for = "/shared/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+[dev]
+  framework = "#static"
+  publish   = "public"
+  port      = 8888

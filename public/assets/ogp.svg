@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1200" y2="630">
+      <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0a0d14"/>
+  <circle cx="980" cy="140" r="420" fill="url(#glow)"/>
+  <g transform="translate(90,150)" fill="none" stroke="url(#g)">
+    <circle cx="80" cy="80" r="70" stroke-width="4"/>
+    <circle cx="80" cy="80" r="40" stroke-width="3" opacity=".55"/>
+    <circle cx="80" cy="80" r="11" fill="url(#g)" stroke="none"/>
+    <path d="M80 80 L142 40" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="90" y="400" fill="#e8ecf4" font-family="Hiragino Sans, Noto Sans JP, sans-serif" font-size="72" font-weight="700">サジェスト・レーダー</text>
+  <text x="90" y="470" fill="#98a2b8" font-family="Hiragino Sans, Noto Sans JP, sans-serif" font-size="34">日本語SEOキーワードをリアルタイム探索</text>
+  <text x="90" y="540" fill="#22d3ee" font-family="SF Mono, monospace" font-size="26">Google / YouTube / Bing / Amazon / DuckDuckGo</text>
+</svg>
