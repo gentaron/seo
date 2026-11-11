@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/gentaron/infocollect/HEAD/ecosystem/schema.json",
+  "schema": 1,
+  "name": "seo",
+  "group": "pipeline",
+  "groupLabel": "発信パイプライン",
+  "status": "maintained",
+  "role": "Suggest Radar — 日本語検索のキーワード探索",
+  "stack": "Node · Netlify",
+  "produces": [
+    "keywords"
+  ],
+  "consumes": [],
+  "upstream": [],
+  "downstream": [],
+  "siblings": [
+    "IDEAZ",
+    "genesisvault",
+    "Gentarog",
+    "VAIZ",
+    "SAIZ",
+    "genimage"
+  ],
+  "hub": {
+    "repo": "https://github.com/gentaron/infocollect",
+    "map": "https://github.com/gentaron/infocollect/blob/HEAD/ecosystem/README.md",
+    "kb": "https://raw.githubusercontent.com/gentaron/infocollect/HEAD/docs/kb",
+    "mcp": [
+      "infocollect-kb",
+      "forge"
+    ]
+  }
+}

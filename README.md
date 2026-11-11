@@ -229,3 +229,15 @@ Google トレンド（日本）の急上昇ワード。デイリー → リア�
 ## 9. ライセンス
 
 MIT
+
+<!-- ecosystem:begin (自動生成: gentaron/infocollect の ecosystem/registry.json から。手で直さない) -->
+
+## つながり
+
+gentaron のリポジトリ群のうち **発信パイプライン** の一つ。Suggest Radar — 日本語検索のキーワード探索。
+
+- **同じ島**: [IDEAZ](https://github.com/gentaron/IDEAZ)、[genesisvault](https://github.com/gentaron/genesisvault)、[Gentarog](https://github.com/gentaron/Gentarog)、[VAIZ](https://github.com/gentaron/VAIZ)、[SAIZ](https://github.com/gentaron/SAIZ)、[genimage](https://github.com/gentaron/genimage)
+
+全体の地図 → [ecosystem](https://github.com/gentaron/infocollect/blob/HEAD/ecosystem/README.md)
+
+<!-- ecosystem:end -->
