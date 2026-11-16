@@ -13,7 +13,7 @@
 <meta property="og:image" content="/assets/ogp.svg">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="./icons/eureka/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preconnect" href="/">
 <link rel="stylesheet" href="/assets/app.css">
@@ -29,6 +29,7 @@
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
 }
 </script>
+<link rel="apple-touch-icon" href="./icons/eureka/apple-touch-icon.png">
 </head>
 <body>
 <a class="skip-link" href="#results">検索結果へスキップ</a>
@@ -224,5 +225,10 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script type="module" src="/assets/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/install-worker.js').catch(console.error);
+}
+</script>
 </body>
 </html>
