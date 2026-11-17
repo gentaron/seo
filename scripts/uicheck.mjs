@@ -40,6 +40,23 @@ const shot = async (name) => SHOT_DIR && page.screenshot({ path: `${SHOT_DIR}/${
 
 await page.addInitScript(() => localStorage.clear());
 await page.goto(BASE, { waitUntil: 'networkidle' });
+await page.waitForSelector('#board tr');
+
+const rows = await page.locator('#board tr').count();
+check('最初の画面はトレンド一覧（検索なしで全部並ぶ）', rows > 5, `${rows} 行`);
+await page.click('#b-region [data-v="ja"]');
+const jaRows = await page.locator('#board tr').count();
+check('トレンド一覧：日本で絞り込める', jaRows > 0 && jaRows < rows, `${jaRows} 行`);
+await page.click('#b-region [data-v=""]');
+await page.selectOption('#b-sort', 'vel');
+check('トレンド一覧：伸び率順に並び替えられる', (await page.locator('#board tr').count()) === rows);
+await shot('00-board');
+await page.locator('#board tr').first().click();
+await page.waitForSelector('#drawer[open]');
+check('トレンド一覧：行クリックで詳細が開く', true);
+await page.click('#dr-close');
+
+await page.click('[data-tab="feed"]');
 await page.waitForSelector('.card');
 
 const cards = await page.locator('.card').count();
@@ -85,15 +102,17 @@ check('観測網に 14 媒体', (await page.locator('.src').count()) === 14);
 const before = await page.evaluate(() => document.documentElement.dataset.theme);
 await page.click('#theme');
 check('配色を切り替えられる', (await page.evaluate(() => document.documentElement.dataset.theme)) !== before);
-await page.click('[data-tab="feed"]');
 await shot('04-light');
+await page.click('[data-tab="board"]');
 
 await page.setViewportSize({ width: 375, height: 800 });
 await page.waitForTimeout(300);
 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 check('モバイル幅で横スクロールしない', overflow <= 0, `${overflow}px`);
 await page.click('#theme');
+await page.waitForTimeout(300);
 await shot('05-mobile');
+await page.click('[data-tab="feed"]');
 
 await page.goto(`${BASE}/?term=aurafarming`, { waitUntil: 'networkidle' });
 await page.waitForSelector('#drawer[open]');

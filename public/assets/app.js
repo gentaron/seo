@@ -28,7 +28,8 @@ const state = {
   lang: '',
   q: '',
   hideMain: true,
-  tab: 'feed',
+  tab: 'board',
+  board: { region: '', window: '', cat: '', sort: 'score', active: false },
   lex: { q: '', stage: '', lang: '', sort: 'recent', page: 1 },
   pendingSnap: null,
 };
@@ -128,6 +129,75 @@ async function api(path, init) {
     throw err;
   }
   return body;
+}
+
+/* ---------------- トレンド一覧（Google トレンド風） ---------------- */
+const CAT = { sns: 'SNS', community: 'コミュニティ', slang: 'スラング・ミーム', video: '動画', tech: 'テック', mainstream: 'ニュース・一般', other: 'その他' };
+const BOARD_SORT = {
+  score: (a, b) => b.score - a.score,
+  vel: (a, b) => b.vel - a.vel || b.score - a.score,
+  first: (a, b) => b.first - a.first || b.score - a.score,
+  spread: (a, b) => b.spread - a.spread || b.score - a.score,
+};
+
+function boardTerms() {
+  const b = state.board;
+  const now = Date.now();
+  return (state.snap?.terms ?? [])
+    .filter((t) => {
+      if (b.region && t.lang !== b.region) return false;
+      if (b.window && now - t.first > Number(b.window) * 3.6e6) return false;
+      if (b.cat && (t.cat || 'other') !== b.cat) return false;
+      if (b.active && !(t.vel > 0.05 || t.status === 'new')) return false;
+      return true;
+    })
+    .sort(BOARD_SORT[b.sort] || BOARD_SORT.score);
+}
+
+function renderBoard() {
+  const list = boardTerms();
+  const s = state.snap;
+  $('#board-empty').hidden = list.length > 0 || !s;
+  if (s) $('#board-sub').textContent = `${list.length} 件のトレンド · ${clock(s.generatedAt)} 更新 · ${s.stats.sourcesUp} 媒体・${s.stats.signals.toLocaleString()} 件の投稿から自動抽出（検索不要）`;
+  $('#board').innerHTML = list
+    .map((t, i) => {
+      const vel = t.status === 'new' && t.runs <= 1 ? '<span class="vel-up">NEW</span>' : t.vel > 0.05 ? `<span class="vel-up">↑${Math.round(t.vel * 100)}%</span>` : t.vel < -0.05 ? `<span class="vel-down">↓${Math.round(-t.vel * 100)}%</span>` : '<span class="mute">→</span>';
+      const live = t.vel > 0.05 || t.status === 'new';
+      // 語そのものだけの用例（トピック名）は飛ばし、文脈が分かる見出しを優先
+      const norm = (x) => String(x).toLowerCase().replace(/[#\s]/g, '');
+      const head = t.samples?.find((x) => norm(x.x) !== norm(t.t));
+      return `<tr data-open="${esc(t.k)}" tabindex="0">
+        <td class="c-rank">${i + 1}</td>
+        <td class="c-term">
+          <div class="bt"><b>${esc(t.t)}</b>${live ? '<span class="live">● 上昇中</span>' : ''}<span class="bcat">${CAT[t.cat] ?? ''}</span></div>
+          ${head ? `<div class="bh">${srcMeta(head.s).icon} ${esc(head.x)}</div>` : ''}
+        </td>
+        <td class="c-heat"><span class="meter"><span class="meter__bar"><i style="width:${t.score}%"></i></span><b>${t.score}</b></span></td>
+        <td class="c-vel">${vel}</td>
+        <td class="c-start">${ago(t.first)}</td>
+        <td class="c-spark">${sparkline(t.spark, { w: 110, h: 30 })}</td>
+        <td class="c-src">${t.srcs.slice(0, 5).map((id) => `<span title="${esc(srcMeta(id).label)}">${srcMeta(id).icon}</span>`).join('')}${t.spread > 5 ? `<small>+${t.spread - 5}</small>` : ''}</td>
+      </tr>`;
+    })
+    .join('');
+}
+
+function bindBoard() {
+  for (const [id, key] of [['#b-region', 'region'], ['#b-window', 'window']]) {
+    $(id).addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-v]');
+      if (!btn) return;
+      state.board[key] = btn.dataset.v;
+      $$(`${id} button`).forEach((x) => x.classList.toggle('is-on', x === btn));
+      renderBoard();
+    });
+  }
+  $('#b-cat').addEventListener('change', (e) => ((state.board.cat = e.target.value), renderBoard()));
+  $('#b-sort').addEventListener('change', (e) => ((state.board.sort = e.target.value), renderBoard()));
+  $('#b-active').addEventListener('change', (e) => ((state.board.active = e.target.checked), renderBoard()));
+  $('#board').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('tr[data-open]')) openTerm(e.target.dataset.open);
+  });
 }
 
 /* ---------------- フィード ---------------- */
@@ -267,6 +337,7 @@ async function loadFeed({ silent = false } = {}) {
 function applySnap(snap) {
   state.snap = snap;
   state.pendingSnap = null;
+  renderBoard();
   renderFeed();
   renderTicker();
   renderSide();
@@ -480,7 +551,7 @@ function showTab(tab) {
   state.tab = tab;
   $$('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   $$('.panel').forEach((p) => (p.hidden = p.dataset.panel !== tab));
-  setParam('tab', tab === 'feed' ? '' : tab);
+  setParam('tab', tab === 'board' ? '' : tab);
   if (tab === 'lexicon') loadLexicon();
   if (tab === 'raw') renderRaw();
   if (tab === 'notes') renderNotes();
@@ -495,6 +566,7 @@ function initTheme() {
 
 /* ---------------- イベント ---------------- */
 function bind() {
+  bindBoard();
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-open],[data-star],[data-copy],[data-lexq],[data-page]');
     if (!t) return;
@@ -517,7 +589,7 @@ function bind() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.matches('.lex li[data-open]')) openTerm(e.target.dataset.open);
-    if (e.key === '/' && !e.target.matches('input,select,textarea')) {
+    if (e.key === '/' && !e.target.matches('input,select,textarea') && state.tab !== 'board') {
       e.preventDefault();
       (state.tab === 'lexicon' ? $('#lex-q') : $('#feed-q')).focus();
     }

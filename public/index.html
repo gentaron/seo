@@ -51,7 +51,8 @@
   <div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
 
   <nav class="tabs" role="tablist" aria-label="表示切り替え">
-    <button role="tab" class="tab" data-tab="feed" aria-selected="true">潮流フィード</button>
+    <button role="tab" class="tab" data-tab="board" aria-selected="true">トレンド一覧</button>
+    <button role="tab" class="tab" data-tab="feed" aria-selected="false">潮流フィード</button>
     <button role="tab" class="tab" data-tab="lexicon" aria-selected="false">スラング大全</button>
     <button role="tab" class="tab" data-tab="raw" aria-selected="false">生データ</button>
     <button role="tab" class="tab" data-tab="notes" aria-selected="false">ネタ帳 <span class="count" id="notes-count">0</span></button>
@@ -60,8 +61,56 @@
 </header>
 
 <main id="main" class="wrap">
+  <!-- ============ トレンド一覧（Google トレンド風・検索不要） ============ -->
+  <section class="panel" data-panel="board">
+    <div class="board-head">
+      <div>
+        <h1 class="h1">いま伸びているトレンド</h1>
+        <p class="mute" id="board-sub">検索しなくても、観測したトレンドを全部ここに並べます。</p>
+      </div>
+    </div>
+    <div class="filters board-filters">
+      <div class="seg" role="group" aria-label="地域" id="b-region">
+        <button class="is-on" data-v="">全世界</button>
+        <button data-v="ja">日本</button>
+        <button data-v="en">英語圏</button>
+      </div>
+      <div class="seg" role="group" aria-label="期間" id="b-window">
+        <button data-v="4">過去4時間</button>
+        <button data-v="24">過去24時間</button>
+        <button data-v="48">過去48時間</button>
+        <button class="is-on" data-v="">すべて</button>
+      </div>
+      <select id="b-cat" aria-label="カテゴリ">
+        <option value="">すべてのカテゴリ</option>
+        <option value="sns">SNS</option>
+        <option value="community">コミュニティ</option>
+        <option value="slang">スラング・ミーム</option>
+        <option value="video">動画</option>
+        <option value="tech">テック</option>
+        <option value="mainstream">ニュース・一般</option>
+      </select>
+      <select id="b-sort" aria-label="並び順">
+        <option value="score">注目度順</option>
+        <option value="vel">伸び率順</option>
+        <option value="first">開始が新しい順</option>
+        <option value="spread">拡散範囲順</option>
+      </select>
+      <label class="toggle"><input type="checkbox" id="b-active"> 上昇中のみ</label>
+    </div>
+    <div class="board-wrap">
+      <table class="board">
+        <thead>
+          <tr><th class="c-rank">#</th><th>トレンド</th><th class="c-heat">注目度</th><th class="c-vel">伸び</th><th class="c-start">開始</th><th class="c-spark">推移（直近）</th><th class="c-src">出ている場所</th></tr>
+        </thead>
+        <tbody id="board"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="board-empty" hidden>条件に合うトレンドがありません。</div>
+  </section>
+
   <!-- ============ 潮流フィード ============ -->
-  <section class="panel" data-panel="feed">
+  <section class="panel" data-panel="feed" hidden>
     <div class="filters">
       <div class="chips" role="group" aria-label="状態で絞り込み" id="status-chips">
         <button class="chip is-on" data-status="">すべて</button>

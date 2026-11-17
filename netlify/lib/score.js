@@ -185,6 +185,7 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
         vel: round(s.velocity),
         spread: s.spread,
         srcs: s.srcs,
+        cat: categoryOf(s.srcs, sourceMap),
         status: status.main,
         badges: status.badges,
         first: s.firstSeen,
@@ -199,6 +200,12 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
   });
 
   return { terms, lexicon: pruneLexicon(next, now), considered: scored.length };
+}
+
+/** 一番効いている媒体（主流の物差しは除く）のジャンルをカテゴリにする */
+export function categoryOf(srcs, sourceMap) {
+  const main = srcs.find((id) => !MAINSTREAM_SOURCES.has(id)) ?? srcs[0];
+  return sourceMap[main]?.genre ?? 'other';
 }
 
 /** 状態判定：誕生 > 急騰 > 拡散 > 失速 > 定着 */
