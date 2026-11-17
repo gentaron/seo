@@ -1,6 +1,8 @@
 # ---------------------------------------------------------------
-# Suggest Radar — Netlify 設定
-# publish: 静的ファイル / functions: サジェスト取得プロキシ
+# Undercurrent — Netlify 設定（無料プランの範囲で完結）
+#   publish   : 静的フロント（public/）
+#   functions : API + 3 時間ごとの定期観測（collect.mjs の config.schedule）
+#   保存先     : Netlify Blobs（設定不要・無料）
 # ---------------------------------------------------------------
 [build]
   publish   = "public"
@@ -13,37 +15,27 @@
 [functions]
   node_bundler = "esbuild"
 
-# /api/* を Functions にマッピング（v1/v2 どちらのランタイムでも動作）
+# /api/* を Functions にマッピング
 [[redirects]]
   from   = "/api/*"
   to     = "/.netlify/functions/:splat"
   status = 200
   force  = true
 
-# SPA ではないが、未知パスはトップへ
-[[redirects]]
-  from   = "/*"
-  to     = "/index.html"
-  status = 200
-
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Content-Type-Options    = "nosniff"
-    X-Frame-Options           = "SAMEORIGIN"
-    Referrer-Policy           = "strict-origin-when-cross-origin"
-    Permissions-Policy        = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+    X-Content-Type-Options     = "nosniff"
+    X-Frame-Options            = "SAMEORIGIN"
+    Referrer-Policy            = "strict-origin-when-cross-origin"
+    Permissions-Policy         = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
     Cross-Origin-Opener-Policy = "same-origin"
+    Content-Security-Policy    = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'self'; frame-ancestors 'self'"
 
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    Cache-Control = "public, max-age=86400, must-revalidate"
-
-[[headers]]
-  for = "/shared/*"
-  [headers.values]
-    Cache-Control = "public, max-age=86400, must-revalidate"
+    Cache-Control = "public, max-age=3600, must-revalidate"
 
 [dev]
   framework = "#static"

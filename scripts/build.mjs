@@ -10,10 +10,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SITE_URL = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://suggest-radar.netlify.app';
+const SITE_URL = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://undercurrent.netlify.app';
 
 async function verifyModules() {
-  const dirs = ['public/shared', 'public/assets/lib', 'netlify/lib', 'netlify/functions'];
+  const dirs = ['netlify/lib', 'netlify/functions'];
   const loaded = [];
   for (const dir of dirs) {
     let entries = [];
@@ -25,12 +25,6 @@ async function verifyModules() {
     for (const file of entries) {
       if (!/\.(mjs|js)$/.test(file)) continue;
       const path = join(root, dir, file);
-      // ブラウザ専用モジュールは import すると document 参照で落ちるため構文検査のみ
-      if (dir === 'public/assets/lib') {
-        await readFile(path, 'utf8');
-        loaded.push(`${dir}/${file} (read)`);
-        continue;
-      }
       await import(`file://${path}`);
       loaded.push(`${dir}/${file}`);
     }
@@ -45,12 +39,25 @@ async function writeSitemap() {
   <url>
     <loc>${SITE_URL}/</loc>
     <lastmod>${now}</lastmod>
-    <changefreq>daily</changefreq>
+    <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
 </urlset>
 `.replace('www.sitemap.org', 'www.sitemaps.org');
   await writeFile(join(root, 'public/sitemap.xml'), xml, 'utf8');
+}
+
+async function writeRobots() {
+  const txt = `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`;
+  await writeFile(join(root, 'public/robots.txt'), txt, 'utf8');
+}
+
+/** ブラウザ用スクリプトは import できない（document 参照）ので構文だけ検査する */
+async function checkBrowserSyntax() {
+  const { execFileSync } = await import('node:child_process');
+  const file = join(root, 'public/assets/app.js');
+  execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' });
+  await readFile(join(root, 'public/index.html'), 'utf8');
 }
 
 async function writeBuildInfo() {
@@ -65,7 +72,9 @@ async function writeBuildInfo() {
 }
 
 const modules = await verifyModules();
+await checkBrowserSyntax();
 await writeSitemap();
+await writeRobots();
 const info = await writeBuildInfo();
 
 console.log(`[build] verified ${modules.length} modules`);

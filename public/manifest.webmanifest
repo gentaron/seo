@@ -1,36 +1,16 @@
 {
-  "name": "サジェスト・レーダー｜日本語SEOキーワード探索",
-  "short_name": "サジェレーダー",
-  "description": "複数の検索エンジンのサジェストを一括取得し、日本語SEOのキーワード調査を行うツール。",
+  "name": "Undercurrent｜ニッチ潮流＆ネットスラング大全",
+  "short_name": "Undercurrent",
+  "description": "世界中の SNS・コミュニティを 3 時間ごとに巡回し、半日で入れ替わるニッチな話題と新語を観測するレーダー。",
   "lang": "ja",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0d14",
-  "theme_color": "#0a0d14",
+  "background_color": "#07080c",
+  "theme_color": "#07080c",
   "icons": [
-    {
-      "src": "./icons/eureka/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/eureka/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icons/eureka/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "./icons/eureka/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/icons/eureka/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/eureka/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/eureka/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/eureka/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

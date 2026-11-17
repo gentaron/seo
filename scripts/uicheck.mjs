@@ -1,13 +1,11 @@
 /**
  * uicheck.mjs — ブラウザでの UI スモークテスト（任意実行）
  *
- *   npm i -D playwright-core            # 初回のみ
- *   node scripts/devserver.mjs --mock & # 別ターミナルで
- *   node scripts/uicheck.mjs
+ *   node scripts/devserver.mjs --mock &   # 別ターミナルで
+ *   node scripts/uicheck.mjs              # SHOT_DIR=dir を付けるとスクショ保存
  *
- * 主要な操作（探索 → 一覧 → グループ → 共起語 → 絞り込み → お気に入り →
- * 配色切替 → モバイル幅）を一通り実行し、JS エラーと横スクロールの発生を検出する。
- * playwright-core が無い環境ではスキップする（CI 必須ではない）。
+ * 主要操作（フィード → 絞り込み → 詳細 → ネタ帳 → 大全 → 生データ → 観測網 → 配色 → モバイル幅）を
+ * 一通り実行し、JS エラーと横スクロールの発生を検出する。playwright が無ければスキップ。
  */
 
 const BASE = process.env.BASE_URL || 'http://localhost:8888';
@@ -15,110 +13,113 @@ const SHOT_DIR = process.env.SHOT_DIR || '';
 
 let chromium;
 try {
-  ({ chromium } = await import('playwright-core'));
+  ({ chromium } = await import('playwright'));
 } catch {
-  console.log('[uicheck] playwright-core が見つかりません。`npm i -D playwright-core` を実行してください。スキップします。');
-  process.exit(0);
+  try {
+    // グローバル導入（NODE_PATH）の playwright は ESM の import では解決されないので require で拾う
+    const { createRequire } = await import('node:module');
+    ({ chromium } = createRequire(import.meta.url)('playwright'));
+  } catch {
+    console.log('[uicheck] playwright が見つかりません。スキップします。');
+    process.exit(0);
+  }
 }
 
-const executablePath =
-  process.env.CHROMIUM_PATH ||
-  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-
-const browser = await chromium.launch({ executablePath, args: ['--no-sandbox'] });
-const page = await browser.newPage({ viewport: { width: 1440, height: 950 }, locale: 'ja-JP' });
-
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+const page = await browser.newPage({ viewport: { width: 1360, height: 900 }, locale: 'ja-JP', colorScheme: 'dark', deviceScaleFactor: SHOT_DIR ? 2 : 1 });
 const errors = [];
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', (e) => errors.push(`PAGEERROR: ${e.message}`));
 
-const checks = [];
+const results = [];
 const check = (name, cond, detail = '') => {
-  checks.push({ name, ok: !!cond, detail });
+  results.push(!!cond);
   console.log(`${cond ? '  ok' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
 };
+const shot = async (name) => SHOT_DIR && page.screenshot({ path: `${SHOT_DIR}/${name}.png`, fullPage: false });
 
 await page.addInitScript(() => localStorage.clear());
 await page.goto(BASE, { waitUntil: 'networkidle' });
+await page.waitForSelector('#board tr');
 
-await page.fill('#keyword', '転職エージェント');
-await page.click('#run');
-await page.waitForTimeout(2500);
+const rows = await page.locator('#board tr').count();
+check('最初の画面はトレンド一覧（検索なしで全部並ぶ）', rows > 5, `${rows} 行`);
+await page.click('#b-region [data-v="ja"]');
+const jaRows = await page.locator('#board tr').count();
+check('トレンド一覧：日本で絞り込める', jaRows > 0 && jaRows < rows, `${jaRows} 行`);
+await page.click('#b-region [data-v=""]');
+await page.selectOption('#b-sort', 'vel');
+check('トレンド一覧：伸び率順に並び替えられる', (await page.locator('#board tr').count()) === rows);
+await shot('00-board');
+await page.locator('#board tr').first().click();
+await page.waitForSelector('#drawer[open]');
+check('トレンド一覧：行クリックで詳細が開く', true);
+await page.click('#dr-close');
 
-const rows = await page.locator('.kw').count();
-check('探索して結果行が描画される', rows > 0, `${rows} 行`);
-check('進捗表示が完了になる', (await page.locator('#progress-text').innerText()).includes('完了'));
-check('中止ボタンが完了後に隠れる', await page.locator('#cancel').isHidden());
+await page.click('[data-tab="feed"]');
+await page.waitForSelector('.card');
 
-await page.locator('.kw').first().click();
-await page.waitForTimeout(700);
-check('詳細パネルにスコアが出る', (await page.locator('#detail-body').innerText()).includes('スコア'));
+const cards = await page.locator('.card').count();
+check('フィードにカードが並ぶ', cards > 5, `${cards} 枚`);
+check('鼓動に次回観測のカウントダウンが出る', /次の観測まで \d+:\d\d:\d\d/.test(await page.locator('#pulse-text').innerText()));
+check('ティッカーに語が流れる', (await page.locator('.ticker__item').count()) > 0);
+check('サイドに履歴が出る', (await page.locator('#history li').count()) > 0);
+await shot('01-feed');
 
-await page.click('[data-view="group"]');
+await page.click('[data-status="new"]');
+const newOnly = await page.locator('.card').count();
+check('🌱 誕生で絞り込める', newOnly > 0 && newOnly <= cards, `${newOnly} 枚`);
+await page.click('[data-status=""]');
+await page.click('[data-lang="ja"]');
+const ja = await page.locator('.card').count();
+check('日本語圏で絞り込める', ja > 0 && ja < cards, `${ja} 枚`);
+await page.click('[data-lang=""]');
+
+await page.locator('.card__term').first().click();
+await page.waitForSelector('#drawer[open] .chart');
+check('詳細ドロワに推移グラフと意味が出る', (await page.locator('#dr-body .def').count()) > 0);
+await shot('02-drawer');
+await page.click('#dr-close');
+
+await page.locator('.star').first().click();
+check('☆ でネタ帳に入る', (await page.locator('#notes-count').innerText()) === '1');
+
+await page.click('[data-tab="lexicon"]');
+await page.waitForSelector('.lex li[data-open]');
+check('大全が表示される', (await page.locator('.lex li[data-open]').count()) > 5);
+await page.fill('#lex-q', '構文');
+await page.waitForTimeout(500);
+check('大全を検索できる', (await page.locator('.lex li[data-open]').count()) >= 1);
+await shot('03-lexicon');
+
+await page.click('[data-tab="raw"]');
+check('生データが媒体ごとに出る', (await page.locator('#raw section').count()) >= 10);
+await page.click('[data-tab="notes"]');
+check('ネタ帳タブに保存した語がある', (await page.locator('#notes li').count()) === 1);
+await page.click('[data-tab="sources"]');
+check('観測網に 14 媒体', (await page.locator('.src').count()) === 14);
+
+const before = await page.evaluate(() => document.documentElement.dataset.theme);
+await page.click('#theme');
+check('配色を切り替えられる', (await page.evaluate(() => document.documentElement.dataset.theme)) !== before);
+await shot('04-light');
+await page.click('[data-tab="board"]');
+
+await page.setViewportSize({ width: 375, height: 800 });
 await page.waitForTimeout(300);
-check('グループ表示に切り替わる', (await page.locator('.group').count()) > 0);
-
-await page.click('[data-view="cloud"]');
+const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+check('モバイル幅で横スクロールしない', overflow <= 0, `${overflow}px`);
+await page.click('#theme');
 await page.waitForTimeout(300);
-check('共起語表示に切り替わる', (await page.locator('.cloud__item').count()) > 0);
+await shot('05-mobile');
+await page.click('[data-tab="feed"]');
 
-await page.click('[data-view="list"]');
-await page.fill('#filter-text', 'おすすめ');
-await page.waitForTimeout(350);
-const filtered = await page.locator('.kw').count();
-check('絞り込みが効く', filtered > 0 && filtered <= rows, `${filtered} 行`);
-await page.fill('#filter-text', '');
-await page.waitForTimeout(300);
+await page.goto(`${BASE}/?term=aurafarming`, { waitUntil: 'networkidle' });
+await page.waitForSelector('#drawer[open]');
+check('?term= で詳細が直接開く', (await page.locator('#dr-title').innerText()).toLowerCase().includes('aura'));
 
-await page.locator('.kw__fav').first().click();
-await page.waitForTimeout(250);
-check('お気に入り登録が反映される', (await page.locator('#fav-count').innerText()) === '1');
-
-await page.click('#theme-toggle');
-await page.waitForTimeout(250);
-check('配色を切り替えられる', (await page.getAttribute('html', 'data-theme')) === 'light');
-await page.click('#theme-toggle');
-
-check('急上昇ワードが表示される', (await page.locator('#trends-body .tag').count()) > 0);
-
-await page.click('[data-engine="youtube"]');
-await page.waitForTimeout(200);
-check(
-  '媒体チップの選択が切り替わる',
-  (await page.getAttribute('[data-engine="youtube"]', 'aria-pressed')) === 'true' &&
-    (await page.locator('#estimate').innerText()).includes('2 媒体'),
-);
-await page.click('[data-engine="youtube"]');
-
-await page.click('#preset-full');
-await page.waitForTimeout(200);
-check(
-  'フル探索プリセットで全モードが有効になる',
-  (await page.locator('.chip[data-mode][aria-pressed="true"]').count()) ===
-    (await page.locator('.chip[data-mode]').count()),
-);
-await page.click('#preset-quick');
-
-await page.click('#help-toggle');
-await page.waitForTimeout(200);
-check('ヘルプが開く', await page.locator('#help-modal').isVisible());
-await page.keyboard.press('Escape');
-
-if (SHOT_DIR) await page.screenshot({ path: `${SHOT_DIR}/desktop.png` });
-
-await page.setViewportSize({ width: 390, height: 844 });
-await page.waitForTimeout(400);
-const [scrollW, clientW] = await page.evaluate(() => [
-  document.documentElement.scrollWidth,
-  document.documentElement.clientWidth,
-]);
-check('モバイル幅で横スクロールが発生しない', scrollW <= clientW, `${scrollW} / ${clientW}`);
-if (SHOT_DIR) await page.screenshot({ path: `${SHOT_DIR}/mobile.png` });
-
-check('JS エラーが出ていない', errors.length === 0, errors.join(' / '));
-
+check('JS エラーなし', errors.length === 0, errors.join(' | '));
 await browser.close();
-
-const failed = checks.filter((c) => !c.ok);
-console.log(`\n[uicheck] ${checks.length - failed.length}/${checks.length} passed`);
-process.exit(failed.length ? 1 : 0);
+const failed = results.filter((r) => !r).length;
+console.log(failed ? `\n${failed} 件失敗` : '\nすべて成功');
+process.exit(failed ? 1 : 0);
