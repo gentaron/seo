@@ -1,73 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { termKey, detectLang, slangness, isPlausibleTerm, stripHtml } from '../netlify/lib/text.js';
+import { parseFeed } from '../netlify/lib/feedparse.js';
 
-import {
-  normalize,
-  keyOf,
-  tokenize,
-  cooccurrence,
-  scoreOf,
-  kanaRow,
-  katakanaToHiragana,
-  groupLabel,
-  toDelimited,
-} from '../public/shared/text.js';
-
-test('normalize: NFKC 正規化と空白の畳み込み', () => {
-  assert.equal(normalize('ＳＥＯ　対策'), 'SEO 対策');
-  assert.equal(keyOf('SEO  対策'), 'seo 対策');
+test('termKey: 表記ゆれを同じキーに寄せる', () => {
+  assert.equal(termKey('Aura Farming'), termKey('#aurafarming'));
+  assert.equal(termKey('aura-farming'), 'aurafarming');
+  assert.equal(termKey('ＡＩ絵師'), 'ai絵師');
 });
 
-test('tokenize: 文字種の切り替わりで語を切り出す', () => {
-  assert.deepEqual(tokenize('転職エージェント おすすめ'), ['転職', 'エージェント', 'おすすめ']);
+test('detectLang', () => {
+  assert.equal(detectLang('チー牛構文'), 'ja');
+  assert.equal(detectLang('rizz'), 'en');
 });
 
-test('tokenize: 数値＋助数詞を1語として扱う', () => {
-  assert.ok(tokenize('おすすめ 20代 5選').includes('20代'));
-  assert.ok(tokenize('おすすめ 20代 5選').includes('5選'));
+test('slangness: 造語っぽい形は高く、一般語は低い', () => {
+  assert.ok(slangness('looksmaxxing') >= 0.4);
+  assert.ok(slangness('チー牛構文') >= 0.4);
+  assert.ok(slangness('ヤバみ') >= 0.3);
+  assert.ok(slangness('government') < 0.2);
+  assert.ok(slangness('政府') < 0.2);
 });
 
-test('tokenize: 助詞や短いひらがなは落とす', () => {
-  const t = tokenize('転職 とは その から');
-  assert.deepEqual(t, ['転職']);
+test('isPlausibleTerm: ノイズを弾く', () => {
+  assert.equal(isPlausibleTerm('the'), false);
+  assert.equal(isPlausibleTerm('2026'), false);
+  assert.equal(isPlausibleTerm('https://x.com'), false);
+  assert.equal(isPlausibleTerm('reddit'), false);
+  assert.equal(isPlausibleTerm('aura farming'), true);
 });
 
-test('cooccurrence: 元キーワードを除いた頻出語を返す', () => {
-  const phrases = ['転職 エージェント おすすめ', '転職 エージェント 比較', '転職 サイト おすすめ'];
-  const result = cooccurrence(phrases, '転職', 10);
-  assert.equal(result[0].count, 2);
-  assert.ok(!result.some((r) => r.word === '転職'));
-});
-
-test('scoreOf: 出現数・媒体数・順位が高いほどスコアが高い', () => {
-  const ctx = { maxHits: 10, engineCount: 3 };
-  const strong = scoreOf({ hits: 10, engines: 3, bestRank: 0 }, ctx);
-  const weak = scoreOf({ hits: 1, engines: 1, bestRank: 9 }, ctx);
-  assert.ok(strong > weak);
-  assert.ok(strong <= 100 && weak >= 1);
-});
-
-test('scoreOf: 単一エンジン運用でも減点されない', () => {
-  const s = scoreOf({ hits: 5, engines: 1, bestRank: 0 }, { maxHits: 5, engineCount: 1 });
-  assert.equal(s, 100);
-});
-
-test('kanaRow / katakanaToHiragana', () => {
-  assert.equal(kanaRow('が'), 'か行');
-  assert.equal(kanaRow('ガ'), 'か行');
-  assert.equal(kanaRow('A'), null);
-  assert.equal(katakanaToHiragana('エージェント'), 'えーじぇんと');
-});
-
-test('groupLabel: 元キーワードの直後の語でまとめる', () => {
-  assert.equal(groupLabel('転職 エージェント 比較', '転職'), 'エージェント');
-  assert.equal(groupLabel('転職', '転職'), '完全一致');
-});
-
-test('toDelimited: CSV のエスケープと BOM', () => {
-  const csv = toDelimited([{ a: 'あ,い', b: 1 }], [{ key: 'a', label: '語' }, { key: 'b', label: '数' }]);
-  assert.ok(csv.startsWith('﻿'));
-  assert.ok(csv.includes('"あ,い"'));
-  const tsv = toDelimited([{ a: 'あ\tい' }], [{ key: 'a', label: '語' }], '\t');
-  assert.ok(!tsv.split('\r\n')[1].includes('\t\t'));
+test('stripHtml と RSS/RDF/Atom の読み取り', () => {
+  assert.equal(stripHtml('<b>a&amp;b</b> &#x3042;'), 'a&b あ');
+  const rss = '<rss><channel><item><title><![CDATA[Hello]]></title><link>https://a</link><ht:approx_traffic>200+</ht:approx_traffic></item></channel></rss>';
+  const [i] = parseFeed(rss, ['ht:approx_traffic']);
+  assert.equal(i.title, 'Hello');
+  assert.equal(i.extra['ht:approx_traffic'], '200+');
+  const rdf = '<rdf:RDF><item rdf:about="https://b"><title>T</title><hatena:bookmarkcount>12</hatena:bookmarkcount></item></rdf:RDF>';
+  assert.equal(parseFeed(rdf)[0].link, 'https://b');
+  const atom = '<feed><entry><title>A</title><link href="https://c"/></entry></feed>';
+  assert.equal(parseFeed(atom)[0].link, 'https://c');
 });

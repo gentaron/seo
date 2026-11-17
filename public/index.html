@@ -3,232 +3,221 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>サジェスト・レーダー｜日本語SEOキーワードをリアルタイム探索</title>
-<meta name="description" content="Google・YouTube・Bing・Amazon など複数エンジンのサジェストを、五十音・アルファベット・疑問語などで一括掛け合わせ。日本語検索に最適化したリアルタイムSEOキーワード調査ツール。">
-<meta name="theme-color" content="#0a0d14">
-<link rel="canonical" href="https://suggest-radar.netlify.app/">
+<title>Undercurrent｜世界のニッチ潮流＆ネットスラング大全</title>
+<meta name="description" content="Bluesky・Misskey・Mastodon・Reddit・ニコニコ・はてブ・Urban Dictionary など 14 の無料ソースを 3 時間ごとに巡回。半日で入れ替わるレベルのニッチな話題と新語を自動で検出し、ネットスラング大全として蓄積します。">
+<meta name="theme-color" content="#07080c">
 <meta property="og:type" content="website">
-<meta property="og:title" content="サジェスト・レーダー｜日本語SEOキーワードをリアルタイム探索">
-<meta property="og:description" content="複数エンジンのサジェストを一括取得。五十音・疑問語・購買語で掛け合わせ、検索需要を可視化する日本語SEOキーワードツール。">
+<meta property="og:title" content="Undercurrent｜世界のニッチ潮流＆ネットスラング大全">
+<meta property="og:description" content="半日で全部入れ替わる、SNS の底流を観測するレーダー。">
 <meta property="og:image" content="/assets/ogp.svg">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="./icons/eureka/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/icons/eureka/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/icons/eureka/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="preconnect" href="/">
+<link rel="alternate" type="application/rss+xml" title="Undercurrent RSS" href="/api/rss">
 <link rel="stylesheet" href="/assets/app.css">
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "サジェスト・レーダー",
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web",
-  "inLanguage": "ja",
-  "description": "複数の検索エンジンのサジェストを一括取得し、日本語SEOのキーワード調査を行うリアルタイムツール。",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
-}
-</script>
-<link rel="apple-touch-icon" href="./icons/eureka/apple-touch-icon.png">
 </head>
 <body>
-<a class="skip-link" href="#results">検索結果へスキップ</a>
+<a class="skip" href="#main">本文へスキップ</a>
 
-<header class="topbar">
-  <div class="topbar__inner">
-    <div class="brand">
+<header class="top">
+  <div class="top__in">
+    <a class="brand" href="/" aria-label="Undercurrent トップ">
       <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="13" fill="none" stroke="url(#g1)" stroke-width="1.6"/>
-        <circle cx="16" cy="16" r="7.5" fill="none" stroke="url(#g1)" stroke-width="1.2" opacity=".55"/>
-        <circle cx="16" cy="16" r="2.2" fill="url(#g1)"/>
-        <path d="M16 16 L27 9" stroke="url(#g1)" stroke-width="1.6" stroke-linecap="round"/>
-        <defs>
-          <linearGradient id="g1" x1="0" y1="0" x2="32" y2="32">
-            <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#818cf8"/>
-          </linearGradient>
-        </defs>
+        <path d="M2 12c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
+        <path d="M2 18c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+        <path d="M2 24c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="26" cy="7" r="3" fill="var(--hot)"/>
       </svg>
-      <span class="brand__text">
-        <strong>サジェスト・レーダー</strong>
-        <small>日本語SEOキーワード探索</small>
-      </span>
+      <span class="brand__txt"><strong>UNDERCURRENT</strong><small>ニッチ潮流＆ネットスラング大全</small></span>
+    </a>
+
+    <div class="pulse" id="pulse" aria-live="polite">
+      <span class="pulse__dot" aria-hidden="true"></span>
+      <span id="pulse-text">観測データを読み込み中…</span>
     </div>
 
-    <form class="search" id="search-form" role="search" autocomplete="off">
-      <div class="search__field">
-        <svg viewBox="0 0 24 24" class="search__icon" aria-hidden="true"><path d="M21 21l-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <input id="keyword" name="q" type="search" placeholder="キーワードを入力（例：転職エージェント）" aria-label="調査するキーワード" list="history-list" enterkeyhint="search" spellcheck="false">
-        <datalist id="history-list"></datalist>
-        <button type="button" class="search__clear" id="clear-keyword" aria-label="入力をクリア" hidden>×</button>
-      </div>
-      <button class="btn btn--primary" id="run" type="submit">
-        <span class="btn__label">調査する</span>
-        <kbd>Enter</kbd>
+    <div class="top__act">
+      <button class="iconbtn" id="refresh" type="button" title="今すぐ観測（15分クールダウン）" aria-label="今すぐ観測">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="btn btn--ghost" id="cancel" type="button" hidden>中止</button>
-    </form>
-
-    <div class="topbar__actions">
-      <button class="icon-btn" id="theme-toggle" type="button" aria-label="配色を切り替え" title="配色を切り替え (T)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
-      </button>
-      <button class="icon-btn" id="help-toggle" type="button" aria-label="使い方" title="使い方 (?)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 9a2.8 2.8 0 1 1 3.8 2.6c-.8.3-1.2 1-1.2 1.9M12 17.2h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <button class="iconbtn" id="theme" type="button" title="配色を切り替え" aria-label="配色を切り替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
       </button>
     </div>
   </div>
 
-  <div class="controls">
-    <div class="controls__row">
-      <span class="controls__label">エンジン</span>
-      <div class="chips" id="engine-chips" role="group" aria-label="取得するサジェストの提供元"></div>
-    </div>
-    <div class="controls__row">
-      <span class="controls__label">掛け合わせ</span>
-      <div class="chips" id="mode-chips" role="group" aria-label="掛け合わせパターン"></div>
-      <div class="controls__meta">
-        <span id="estimate" class="estimate">推定 0 クエリ</span>
-        <button class="link-btn" id="preset-full" type="button">フル探索</button>
-        <button class="link-btn" id="preset-quick" type="button">高速</button>
-      </div>
-    </div>
-  </div>
+  <div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
 
-  <div class="progress" id="progress" hidden>
-    <div class="progress__bar"><div class="progress__fill" id="progress-fill"></div></div>
-    <div class="progress__text" id="progress-text" role="status" aria-live="polite"></div>
-  </div>
+  <nav class="tabs" role="tablist" aria-label="表示切り替え">
+    <button role="tab" class="tab" data-tab="feed" aria-selected="true">潮流フィード</button>
+    <button role="tab" class="tab" data-tab="lexicon" aria-selected="false">スラング大全</button>
+    <button role="tab" class="tab" data-tab="raw" aria-selected="false">生データ</button>
+    <button role="tab" class="tab" data-tab="notes" aria-selected="false">ネタ帳 <span class="count" id="notes-count">0</span></button>
+    <button role="tab" class="tab" data-tab="sources" aria-selected="false">観測網</button>
+  </nav>
 </header>
 
-<main class="layout">
-  <!-- 左サイド -->
-  <aside class="side side--left" aria-label="ナビゲーション">
-    <section class="panel" id="trends-panel">
-      <h2 class="panel__title">
-        <span>急上昇ワード<small>Google トレンド JP</small></span>
-        <button class="link-btn" id="trends-reload" type="button">更新</button>
-      </h2>
-      <div class="panel__body" id="trends-body"><p class="muted">読み込み中…</p></div>
-    </section>
-
-    <section class="panel">
-      <h2 class="panel__title">
-        <span>お気に入り<small id="fav-count">0</small></span>
-        <button class="link-btn" id="fav-clear" type="button">全消去</button>
-      </h2>
-      <div class="panel__body" id="fav-body"><p class="muted">★ を押して保存したキーワードが並びます。</p></div>
-    </section>
-
-    <section class="panel">
-      <h2 class="panel__title">
-        <span>調査履歴</span>
-        <button class="link-btn" id="history-clear" type="button">全消去</button>
-      </h2>
-      <div class="panel__body" id="history-body"><p class="muted">まだありません。</p></div>
-    </section>
-  </aside>
-
-  <!-- 中央 -->
-  <section class="results" id="results" aria-label="キーワード一覧">
-    <div class="results__toolbar">
-      <div class="filter">
-        <input id="filter-text" type="search" placeholder="結果を絞り込む（例：おすすめ）" aria-label="結果の絞り込み" spellcheck="false">
+<main id="main" class="wrap">
+  <!-- ============ 潮流フィード ============ -->
+  <section class="panel" data-panel="feed">
+    <div class="filters">
+      <div class="chips" role="group" aria-label="状態で絞り込み" id="status-chips">
+        <button class="chip is-on" data-status="">すべて</button>
+        <button class="chip" data-status="new">🌱 誕生</button>
+        <button class="chip" data-status="surge">🔥 急騰</button>
+        <button class="chip" data-status="spread">🌊 拡散</button>
+        <button class="chip" data-status="revival">🧟 再燃</button>
+        <button class="chip" data-status="slang">🗯 スラング濃いめ</button>
+        <button class="chip" data-status="cool">🥀 失速</button>
       </div>
-      <div class="segmented" role="tablist" aria-label="表示モード">
-        <button role="tab" class="is-active" data-view="list" type="button">一覧</button>
-        <button role="tab" data-view="group" type="button">グループ</button>
-        <button role="tab" data-view="cloud" type="button">共起語</button>
-      </div>
-      <label class="select">
-        <span class="sr-only">並び替え</span>
-        <select id="sort">
-          <option value="score">スコア順</option>
-          <option value="hits">出現数順</option>
-          <option value="rank">表示順位順</option>
-          <option value="alpha">五十音順</option>
-          <option value="length">文字数順</option>
-        </select>
-      </label>
-      <div class="results__actions">
-        <button class="btn btn--sm" id="copy-all" type="button">コピー</button>
-        <button class="btn btn--sm" id="export-csv" type="button">CSV</button>
-        <button class="btn btn--sm btn--ghost" id="export-json" type="button">JSON</button>
+      <div class="filters__row">
+        <div class="seg" role="group" aria-label="言語圏" id="lang-seg">
+          <button class="is-on" data-lang="">全世界</button>
+          <button data-lang="ja">日本語圏</button>
+          <button data-lang="en">英語圏</button>
+        </div>
+        <label class="find">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21l-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <input id="feed-q" type="search" placeholder="フィード内を検索" aria-label="フィード内を検索" spellcheck="false">
+        </label>
+        <label class="toggle"><input type="checkbox" id="hide-main" checked> 主流ネタを隠す</label>
       </div>
     </div>
 
-    <div class="results__stats" id="stats"></div>
-    <div class="results__body" id="results-body">
-      <div class="empty" id="empty-state">
-        <svg viewBox="0 0 64 64" class="empty__art" aria-hidden="true">
-          <circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"/>
-          <circle cx="32" cy="32" r="14" fill="none" stroke="currentColor" stroke-width="1" opacity=".35"/>
-          <circle cx="32" cy="32" r="4" fill="currentColor" opacity=".6"/>
-          <path d="M32 32 L52 20" stroke="currentColor" stroke-width="1.4" opacity=".6"/>
-        </svg>
-        <h2>キーワードを入力して探索を開始</h2>
-        <p>五十音・アルファベット・疑問語・購買語を自動で掛け合わせ、<br>複数エンジンのサジェストをリアルタイムに収集します。</p>
-        <div class="empty__samples" id="samples"></div>
+    <div class="layout">
+      <div>
+        <p class="feed-meta" id="feed-meta"></p>
+        <ol class="feed" id="feed" aria-live="polite"></ol>
+        <div class="empty" id="feed-empty" hidden>条件に合う語がありません。</div>
       </div>
+      <aside class="side" aria-label="観測サマリ">
+        <section class="card-s">
+          <h2>今回の観測</h2>
+          <dl class="stats" id="stats"></dl>
+        </section>
+        <section class="card-s">
+          <h2>過去の潮流 <small>（観測ごとのトップ）</small></h2>
+          <ol class="history" id="history"></ol>
+        </section>
+        <section class="card-s">
+          <h2>購読</h2>
+          <p class="mute">RSS で更新を受け取れます。</p>
+          <div class="sub-links">
+            <a href="/api/rss" target="_blank" rel="noopener">全体</a>
+            <a href="/api/rss?lang=ja" target="_blank" rel="noopener">日本語圏</a>
+            <a href="/api/rss?lang=en" target="_blank" rel="noopener">英語圏</a>
+          </div>
+        </section>
+      </aside>
     </div>
   </section>
 
-  <!-- 右サイド -->
-  <aside class="side side--right" aria-label="キーワード詳細">
-    <section class="panel panel--detail" id="detail-panel">
-      <h2 class="panel__title"><span>キーワード詳細</span></h2>
-      <div class="panel__body" id="detail-body">
-        <p class="muted">一覧からキーワードを選ぶと、出現状況・関連情報・検索リンクを表示します。</p>
+  <!-- ============ スラング大全 ============ -->
+  <section class="panel" data-panel="lexicon" hidden>
+    <div class="lex-head">
+      <div>
+        <h1 class="h1">ネットスラング大全</h1>
+        <p class="mute" id="lex-counts">観測した語は自動でここに蓄積されます。3 日観測されない語は「死語」に。</p>
       </div>
+      <a class="btn" id="lex-csv" href="/api/lexicon?format=csv" download>CSV で書き出す</a>
+    </div>
+    <div class="filters">
+      <div class="filters__row">
+        <label class="find grow">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21l-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <input id="lex-q" type="search" placeholder="語を検索（例：構文、maxxing）" aria-label="大全を検索" spellcheck="false">
+        </label>
+        <select id="lex-stage" aria-label="生死で絞り込み">
+          <option value="">すべての状態</option>
+          <option value="newborn">🌱 生まれたて</option>
+          <option value="alive">🔥 生存中</option>
+          <option value="fading">🌫 消えかけ</option>
+          <option value="dead">💀 死語</option>
+        </select>
+        <select id="lex-lang" aria-label="言語で絞り込み">
+          <option value="">全言語</option>
+          <option value="ja">日本語</option>
+          <option value="en">英語</option>
+        </select>
+        <select id="lex-sort" aria-label="並び順">
+          <option value="recent">最近見た順</option>
+          <option value="peak">最高スコア順</option>
+          <option value="first">新しく生まれた順</option>
+          <option value="slang">スラング度順</option>
+          <option value="runs">しぶとい順</option>
+          <option value="alpha">五十音・ABC 順</option>
+        </select>
+      </div>
+    </div>
+    <ul class="lex" id="lex"></ul>
+    <div class="pager" id="lex-pager"></div>
+  </section>
+
+  <!-- ============ 生データ ============ -->
+  <section class="panel" data-panel="raw" hidden>
+    <h1 class="h1">生データ <small class="mute">各媒体から拾った投稿・トピックの上位</small></h1>
+    <div class="raw" id="raw"></div>
+  </section>
+
+  <!-- ============ ネタ帳 ============ -->
+  <section class="panel" data-panel="notes" hidden>
+    <div class="lex-head">
+      <div>
+        <h1 class="h1">ネタ帳</h1>
+        <p class="mute">☆ を付けた語。このブラウザにだけ保存されます。</p>
+      </div>
+      <div class="btns">
+        <button class="btn" id="notes-md" type="button">Markdown でコピー</button>
+        <button class="btn btn--ghost" id="notes-clear" type="button">全部消す</button>
+      </div>
+    </div>
+    <ul class="notes" id="notes"></ul>
+    <div class="empty" id="notes-empty">まだ何もありません。フィードのカードの ☆ で追加できます。</div>
+  </section>
+
+  <!-- ============ 観測網 ============ -->
+  <section class="panel" data-panel="sources" hidden>
+    <h1 class="h1">観測網 <small class="mute">すべて無料・API キー不要</small></h1>
+    <div class="srcgrid" id="srcgrid"></div>
+    <section class="explain">
+      <h2>スコアの読み方</h2>
+      <ul>
+        <li><b>熱量</b> … 媒体の重み × 媒体内での反応の順位 × 新しさ × 媒体側の勢い。1 つの媒体で何度出ても頭打ちになります。</li>
+        <li><b>拡散</b> … いくつの媒体にまたがっているか。3 媒体以上で 🌊。</li>
+        <li><b>伸び率</b> … その語の過去の平均（指数移動平均）に対して今回どれだけ伸びたか。0.8 以上で 🔥。</li>
+        <li><b>新しさ</b> … 初めて観測してからの経過時間で減ります。12 時間以内は 🌱。</li>
+        <li><b>スラング度</b> … 造語っぽい形（〜構文 / 〜界隈 / -maxxing / -core など）とスラング系媒体での出現から推定。</li>
+        <li><b>主流ネタ</b> … Google トレンドや Wikipedia の上位にしか出ていない語は減点。ニッチ優先です。</li>
+        <li><b>半減期</b> … 直近 2 回の観測から熱量が半分になるまでの時間を推定。伸びている間は「上昇中」と表示します。</li>
+      </ul>
     </section>
-  </aside>
+  </section>
 </main>
 
-<footer class="footer">
-  <div class="footer__inner">
-    <p>
-      サジェスト・レーダー — 各検索エンジンの公開サジェストを取得して集計するツールです。
-      スコアは<strong>サジェスト上の露出の強さ</strong>を表す独自指標であり、検索ボリュームそのものではありません。
-    </p>
-    <p class="footer__meta">
-      <a href="/api/health" target="_blank" rel="noopener">提供元の疎通診断</a>
-      <span id="build-info" class="muted"></span>
-    </p>
-  </div>
-</footer>
-
-<dialog class="modal" id="help-modal">
-  <div class="modal__inner">
-    <h2>使い方とショートカット</h2>
-    <ol class="howto">
-      <li><strong>キーワードを入力</strong> — 単語でも複合語でも構いません。</li>
-      <li><strong>掛け合わせを選ぶ</strong> — 「五十音」で網羅、「疑問・悩み」で記事ネタ、「比較・購買」で収益キーワードが集まります。</li>
-      <li><strong>調査する</strong> — 結果はリアルタイムに流れ込みます。スコアの高い順に検討してください。</li>
-      <li><strong>掘り下げる</strong> — 行の「⤵」で、そのキーワードを起点に再探索できます。</li>
-      <li><strong>持ち出す</strong> — ★でお気に入り、CSV/JSON で書き出し。</li>
-    </ol>
-    <table class="keys">
-      <tbody>
-        <tr><td><kbd>/</kbd></td><td>検索欄にフォーカス</td></tr>
-        <tr><td><kbd>Enter</kbd></td><td>調査を開始</td></tr>
-        <tr><td><kbd>J</kbd> / <kbd>K</kbd></td><td>キーワードを上下に移動</td></tr>
-        <tr><td><kbd>F</kbd></td><td>選択中をお気に入り登録</td></tr>
-        <tr><td><kbd>D</kbd></td><td>選択中を起点に深掘り</td></tr>
-        <tr><td><kbd>C</kbd></td><td>表示中のキーワードをコピー</td></tr>
-        <tr><td><kbd>T</kbd></td><td>配色切り替え</td></tr>
-        <tr><td><kbd>Esc</kbd></td><td>絞り込みを解除 / 閉じる</td></tr>
-      </tbody>
-    </table>
-    <form method="dialog"><button class="btn btn--primary" type="submit">閉じる</button></form>
+<dialog class="drawer" id="drawer" aria-labelledby="dr-title">
+  <div class="drawer__in">
+    <header class="drawer__head">
+      <div>
+        <p class="drawer__kicker" id="dr-kicker"></p>
+        <h2 class="drawer__title" id="dr-title"></h2>
+      </div>
+      <button class="iconbtn" id="dr-close" type="button" aria-label="閉じる">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div class="drawer__body" id="dr-body"></div>
   </div>
 </dialog>
 
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<footer class="foot">
+  <p>Undercurrent — 3 時間ごとに観測（Netlify Scheduled Functions）。データは各媒体の公開情報に基づく推定です。</p>
+  <p class="mute" id="build"></p>
+</footer>
 
 <script type="module" src="/assets/app.js"></script>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/install-worker.js').catch(console.error);
-}
-</script>
 </body>
 </html>

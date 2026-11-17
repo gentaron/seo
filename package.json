@@ -1,9 +1,9 @@
 {
-  "name": "suggest-radar",
+  "name": "undercurrent",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "日本語圏に最適化したリアルタイムSEOキーワード・サジェスト探索ツール（Netlify Functions + 静的フロント）",
+  "description": "世界のニッチ潮流＆ネットスラング大全 — 無料ソースを 3 時間ごとに巡回する Netlify アプリ",
   "engines": {
     "node": ">=20"
   },
@@ -13,14 +13,18 @@
     "serve:mock": "node scripts/devserver.mjs --mock",
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.js",
+    "observe": "node scripts/observe.mjs",
     "uicheck": "node scripts/uicheck.mjs"
   },
   "keywords": [
-    "seo",
-    "keyword",
-    "suggest",
-    "japanese",
-    "netlify"
+    "trends",
+    "slang",
+    "meme",
+    "netlify",
+    "scheduled-functions"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.9"
+  }
 }

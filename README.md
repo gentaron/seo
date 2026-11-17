@@ -1,231 +1,129 @@
-# サジェスト・レーダー（Suggest Radar）
+# Undercurrent（アンダーカレント）
 
-日本語検索に最適化した、**リアルタイム SEO キーワード探索ツール**。
-ラッコキーワードのようなサジェスト網羅取得を、Netlify（静的ホスティング + Functions）だけで動く構成で実装しています。
+**世界のニッチ潮流＆ネットスラング大全。**
+SNS やコミュニティを 3 時間ごとに自動で巡回して、「半日経ったら全部入れ替わっている」レベルの話題や新語を拾い出し、フィード形式で流します。拾った語は自動で台帳に蓄積され、そのまま **ネットスラング大全** になります。
 
-- 依存パッケージ **ゼロ**（フロントは素の ES Modules、サーバは Node 標準の `fetch` のみ）
-- API キー不要・アカウント不要・データベース不要
-- 8 媒体のサジェストを並列取得し、到着したそばから画面へ流し込む
-- 五十音／アルファベット／疑問語／購買語などで自動掛け合わせ（全モードで約 220 クエリ）
+- **全部無料**：Netlify 無料プラン（Functions／Scheduled Functions／Blobs）だけで動き、使う API もすべてキー不要
+- **依存はほぼゼロ**：フロントは素の ES Modules、サーバ側は `@netlify/blobs` だけ
+- **SEO キーワードツールではない**：検索ボリュームは見ず、「いま生まれて、いま伸びている語」だけを見る
 
 ---
 
-## 1. できること
+## 1. 何を観測しているか（14 ソース・すべて無料）
 
-| 機能 | 概要 |
+| 媒体 | 取り方 | 役割 |
+| --- | --- | --- |
+| 🦋 Bluesky | 公開 AppView の `getTrends` / `getTrendingTopics` | 英語圏 SNS のトレンド |
+| 🐘 Mastodon | mastodon.social / mstdn.jp / fosstodon / mas.to の `trends/tags`（7 日分の利用履歴つき） | 連合 SNS のタグの伸び |
+| 🥑 Misskey.io | `hashtags/trend`（直近のチャートつき） | 日本語圏ネット文化の震源 |
+| 👽 Reddit | OutOfTheLoop・GenZ・copypasta など 16 サブレの *rising* | 英語スラングの発生源 |
+| 📕 Urban Dictionary | `words_of_the_day` | 英語スラングの一次ソース |
+| 🧌 Know Your Meme | RSS | ミームの台帳 |
+| 📺 ニコニコ動画 | 毎時ランキング RSS | 日本のネットミーム |
+| 🔖 はてなブックマーク | 人気＋新着 RSS | 日本語圏で読まれている話題 |
+| 🟧 Hacker News | Algolia API（front page＋伸びている Show HN） | 技術系のニッチ |
+| 🦞 Lobsters | `hottest.json` | 濃いめの技術コミュニティ |
+| 🐙 GitHub | 直近 48 時間に作られて星を集めているリポジトリ | 技術系の新語・新ツール |
+| 🐭 Lemmy | lemmy.world の *Active* | Reddit の代わりになる連合コミュニティ |
+| 📈 Google Trends | 日本・米国の RSS | **主流の基準**（ここにしか出ない語は減点） |
+| 📚 Wikipedia | ja/en の閲覧数上位 | **主流の基準** |
+
+1 つのソースが落ちても全体は止まりません。「観測網」タブと `/api/health` で各ソースの状態を確認できます。
+
+## 2. 仕組み
+
+```
+[Scheduled Function: collect]  3 時間ごと（cron 0 */3 * * *）
+   │
+   ├─ sources.js   14 ソースを並列取得（制限時間を超えたソースは切り捨て）
+   ├─ mine.js      語の候補を掘り出す
+   │                 ・ソースが示しているトピック名やハッシュタグ
+   │                 ・本文：「」『』【】で囲まれた語／日本語は Intl.Segmenter で分かち書きして複合語を組み直す
+   │                   （推し|活 → 推し活、ヤバ|み → ヤバみ）／英語は固有名詞の連続と 1〜3 語の組み合わせ
+   │                 ・表記ゆれをまとめる（aura farming = #aurafarming = aura-farming）
+   │                 ・長い語の一部としてしか出てこない短い語は外す（skibidi toilet があれば toilet は消す）
+   ├─ score.js     採点し、台帳を更新
+   └─ Netlify Blobs  latest（最新スナップショット）／lexicon（大全）／meta（履歴）
+                   │
+[フロント] ── /api/feed ・ /api/term ・ /api/lexicon ・ /api/rss ・ /api/history
+```
+
+### スコアの中身
+
+| 指標 | 意味 |
 | --- | --- |
-| マルチエンジン取得 | Google / YouTube / Bing / DuckDuckGo / Amazon.co.jp / Google ニュース / Google 画像 / Yahoo! JAPAN(β) |
-| 掛け合わせ探索 | 基本・五十音・濁音、半濁音・アルファベット・数字/年号・疑問/悩み・比較/購買・ハウツー・属性/地域 の 9 モード |
-| リアルタイム表示 | バッチ単位で並列リクエスト。結果は届いた順に集計・再描画（進捗バー・件数・経過秒） |
-| 独自スコア | 出現クエリ数・媒体数・最高表示順位から 0〜100 で算出（詳細は §6） |
-| グループ表示 | 元キーワードの直後に来る語で自動分類 |
-| 共起語抽出 | 文字種の切り替わりで語を切り出し、頻出語をクラウド表示（クリックで絞り込み） |
-| 深掘り | 任意のキーワードを起点に再探索（⤵ または `D` キー） |
-| 語の背景 | 日本語版 Wikipedia の要約・関連項目を右ペインに表示 |
-| 急上昇ワード | Google トレンド（日本）のデイリー／リアルタイムを取得 |
-| 書き出し | CSV（Excel 用 BOM 付き）・JSON・クリップボード一括コピー |
-| 保存 | お気に入り・調査履歴を localStorage に保持。URL にも状態を反映（共有可能） |
-| UI | ダーク/ライト、キーボード操作、モバイル対応、`prefers-reduced-motion` 対応 |
+| 熱量 | ソースの重み × そのソース内での反応の順位 × 新しさ × ソース自身が示す勢い。1 つのソースで何度出ても上限で頭打ち |
+| 拡散 | いくつのソースにまたがって出ているか（3 つ以上で 🌊） |
+| 伸び率 | 台帳に記録した過去の平均（指数移動平均）に比べて、今回どれだけ伸びたか（0.8 以上で 🔥） |
+| 新しさ | 初めて観測してからの経過時間で減る（12 時間以内は 🌱） |
+| スラング度 | 造語っぽい形（〜構文／〜界隈／〜沼／-maxxing／-core／-pilled など）と、スラング系ソースに出ているかで推定 |
+| 主流ネタの減点 | Google Trends や Wikipedia の上位**にしか**出ていない語は ×0.45 |
 
----
+状態の判定：🌱 誕生（初観測から 12 時間以内）／🔥 急騰／🌊 拡散／🧟 再燃（1 日以上消えたあと再び出現）／🥀 失速。
+大全では、3 日間観測されなかった語に 💀 死語 が付きます。
 
-## 2. Netlify へのデプロイ
+> 立ち上げ直後の数回（半日ほど）は過去データがないので、ほぼ全部が 🌱 になります。観測を重ねるほど「いつも出ている語」が自然に沈み、本当に新しい語が浮かぶようになります。
 
-### 2-1. GitHub 連携（推奨）
+## 3. Netlify へのデプロイ
 
-1. このリポジトリを GitHub に push
-2. Netlify → **Add new site → Import an existing project** → 対象リポジトリを選択
-3. ビルド設定は `netlify.toml` が持っているため、そのまま **Deploy**
-   - Build command: `node scripts/build.mjs`
-   - Publish directory: `public`
-   - Functions directory: `netlify/functions`
-4. デプロイ完了後、`https://<your-site>.netlify.app/api/health` を開いて提供元の疎通を確認
-
-環境変数の設定は不要です（API キーを使わない設計）。
-
-### 2-2. CLI から
+1. このリポジトリを Netlify に繋ぐ（**Add new site → Import an existing project**）
+2. ビルド設定は `netlify.toml` に書いてあるので、そのまま **Deploy**
+3. 環境変数は不要。Blobs も設定なしで使えます
+4. 開いてみる：最初のアクセスで 1 回観測が走ります（10 秒以内で終わるよう制限時間付き）。以降は 3 時間ごとに Scheduled Function が自動で更新します
 
 ```bash
+# CLI で入れる場合
 npm i -g netlify-cli
 netlify login
-netlify init      # 既存サイトに繋ぐ場合は netlify link
+netlify init
 netlify deploy --build --prod
 ```
 
-### 2-3. デプロイ後の確認
+- Scheduled Functions が動くのは**本番デプロイ（Published deploy）だけ**です。プレビューでは動きません
+- 無料枠の消費は「1 日 8 回の定期観測＋閲覧」なので、Functions の月間上限にはまず届きません
+- 観測の間隔を変えるときは、`netlify/functions/collect.mjs` の `schedule` と `netlify/lib/score.js` の `RUN_INTERVAL_H` を揃えてください
+
+## 4. API
+
+| エンドポイント | 内容 |
+| --- | --- |
+| `GET /api/feed?lang=ja\|en&status=new\|surge\|spread\|cool\|revival&limit=` | 最新スナップショット（語・スコア・推移・用例・ソースの状態・各ソースの生データ） |
+| `GET /api/term?k=<語>` | 語の詳細（推移・用例・出たソース＋Urban Dictionary／Wikipedia の意味） |
+| `GET /api/lexicon?q=&lang=&stage=newborn\|alive\|fading\|dead&sort=recent\|peak\|first\|slang\|runs\|alpha&page=` | ネットスラング大全。`format=csv` を付けると CSV（Excel 用 BOM 付き）で出力 |
+| `GET /api/rss?lang=&min=` | 最新の潮流を RSS 2.0 で配信 |
+| `GET /api/history` | 観測ごとの上位語の履歴 |
+| `POST /api/refresh` | 手動で観測（クールダウン 15 分・全ユーザー共通） |
+| `GET /api/health?src=reddit,misskey` | 各ソースへの接続確認（結果は保存しない） |
+
+## 5. ローカル開発
 
 ```bash
-curl -s https://<your-site>.netlify.app/api/health | jq
+npm install
+npm run serve:mock   # 疑似データで UI を確認（オフラインで動く。24 時間ぶんの観測を先に流し込む）
+npm run serve        # 実際のソースに接続（結果は .netlify/local-blobs/ に保存）
+npm run observe      # ターミナルで 1 回観測して上位を表示（-- --mock / -- --json）
+npm test             # 単体テスト・Function テスト（ネットワーク不要）
+npm run uicheck      # Playwright による UI の動作確認（serve:mock を起動した状態で）
 ```
 
-`engines[].ok` が `true` の媒体が実際に使えます。`false` の媒体は提供元側の制限・仕様変更が原因で、
-UI 側では自動的にその媒体だけスキップされます（他媒体の結果には影響しません）。
-
----
-
-## 3. ローカル開発
-
-```bash
-# 1) 外部 API に接続せず、疑似データで UI を動かす（オフラインでも可）
-npm run serve:mock          # http://localhost:8888
-
-# 2) 実データで動かす（外部サジェスト API へ接続）
-npm run serve
-
-# 3) Netlify CLI を使う場合（本番と同じルーティング）
-npm run dev
-```
-
-`scripts/devserver.mjs` は `public/` を静的配信し、`/api/<name>` を
-`netlify/functions/<name>.mjs` に橋渡しする最小サーバです（netlify-cli 不要）。
-
-### テスト
-
-```bash
-npm test          # 44 件のユニットテスト（node:test、外部通信なし）
-```
-
-ブラウザ操作のスモークテスト（任意）:
-
-```bash
-npm i -D playwright-core
-npm run serve:mock &
-npm run uicheck               # 探索〜表示切替〜モバイル幅まで 15 項目
-```
-
----
-
-## 4. API リファレンス
-
-すべて `/api/*`（実体は Netlify Functions）。CORS 許可済みで外部からも利用できます。
-
-### `POST /api/suggest`
-
-クライアントが掛け合わせクエリをバッチ分割して叩く本経路。
-
-```jsonc
-// リクエスト
-{ "queries": ["転職 あ", "転職 い"], "engines": ["google", "bing"] }
-
-// レスポンス
-{
-  "ok": true,
-  "engines": ["google", "bing"],
-  "queryCount": 2,
-  "elapsedMs": 412,
-  "stats": { "google": { "ok": 2, "failed": 0, "cached": 0 } },
-  "failures": [],
-  "results": [{ "engine": "google", "query": "転職 あ", "suggestions": ["転職 あきらめる", "..."] }]
-}
-```
-
-- `queries` は 1 リクエストあたり最大 60 件
-- 一部が失敗しても 200 を返し、`stats` / `failures` に内訳が入る（部分成功方式）
-
-### `GET /api/suggest`
-
-サーバ側で掛け合わせを展開する簡易版。
+## 6. 構成
 
 ```
-/api/suggest?q=転職&modes=base,gojuon,question&engines=google,youtube
+netlify/
+  functions/  collect（定期観測）· feed · term · lexicon · rss · history · refresh · health
+  lib/        sources（14 ソースの取得処理）· mine（語の掘り出し）· score（採点と台帳）
+              pipeline（観測 1 回分の処理）· store（Blobs／ファイル／メモリ）· text · feedparse · http
+public/       index.html · assets/app.js · assets/app.css（フィード／大全／生データ／ネタ帳／観測網）
+scripts/      build · devserver · mock-web（疑似データ）· observe · uicheck
+test/         node:test
 ```
 
-`modes` に指定できる値: `base` `gojuon` `dakuon` `alphabet` `number` `question` `commercial` `howto` `attribute`
+## 7. 注意
 
-### `GET /api/trends`
+- 各ソースの公開情報をもとにした**推定**です。仕様の変更やアクセス制限（特に Reddit は、クラウドからのアクセスを弾くことがあります）で一部のソースが止まることがあります。止まったソースはそのまま飛ばされ、「観測網」タブに理由が出ます
+- 公開 API に接続するときは、正直な User-Agent（`UndercurrentBot/1.0`）を名乗ります
+- ネタ帳はブラウザの localStorage にだけ保存されます
 
-Google トレンド（日本）の急上昇ワード。デイリー → リアルタイムの順にフォールバック。
-
-### `GET /api/related?q=<keyword>`
-
-日本語版 Wikipedia の候補・要約・関連項目。
-
-### `GET /api/health[?q=<probe>]`
-
-全媒体へテストクエリを投げ、`ok` / 件数 / レイテンシ / エラーを返す診断用。
-
----
-
-## 5. 構成
-
-```
-.
-├── netlify.toml              # ビルド・リダイレクト・ヘッダ設定
-├── public/                   # 静的配信されるすべて
-│   ├── index.html
-│   ├── assets/
-│   │   ├── app.css           # 単一スタイルシート（ダーク/ライト）
-│   │   ├── app.js            # エントリ（状態・イベント・描画の接続）
-│   │   └── lib/
-│   │       ├── api.js        # バッチ分割と並列リクエスト
-│   │       ├── store.js      # 状態管理と集計（DOM 非依存）
-│   │       └── views.js      # DOM 描画
-│   └── shared/               # ブラウザと Functions が共有する純粋モジュール
-│       ├── expand.js         # 掛け合わせクエリ生成
-│       ├── text.js           # 正規化・トークン化・スコアリング
-│       └── engines-meta.js   # 媒体の表示メタ情報（単一の情報源）
-├── netlify/
-│   ├── functions/            # suggest / trends / related / health
-│   └── lib/                  # engines.js（取得・パース）, http.js（並列・キャッシュ・制限）
-├── scripts/                  # build / devserver / uicheck
-└── test/                     # node:test（外部通信をスタブ化）
-```
-
-設計上のポイント:
-
-- **共有モジュールは `public/shared/` に置く。** ブラウザからは静的配信で、Functions からは
-  相対 import（esbuild がバンドル）で同じファイルを読む。掛け合わせ語の定義が二重化しない。
-- **失敗は握りつぶさず、部分成功で返す。** 1 媒体・1 クエリの失敗が探索全体を止めない。
-- **キャッシュと流量制御。** Function インスタンス内に TTL 付き LRU（10 分）と
-  IP 単位のトークンバケットを持ち、同一クエリの再取得と濫用を抑える。
-
----
-
-## 6. スコアの定義（重要）
-
-表示される 0〜100 の数値は **サジェスト上の露出の強さ** を表す独自指標で、
-**検索ボリュームではありません**。内訳は次のとおりです。
-
-| 要素 | 重み | 意味 |
-| --- | --- | --- |
-| 出現クエリ数（対数正規化） | 45% | 多くの掛け合わせで顔を出す語ほど需要の裾野が広い |
-| 出現媒体数 | 25% | 媒体を跨いで現れる語ほど普遍的 |
-| 最高表示順位 | 30% | サジェスト上位ほどユーザーの入力が多い |
-
-実装は `public/shared/text.js` の `scoreOf()`。重みを変えたい場合はここだけ触れば全体に反映されます。
-実ボリュームが必要な場合は Google キーワードプランナーや Search Console の実データと突き合わせてください。
-
----
-
-## 7. カスタマイズ
-
-**掛け合わせ語を業種に合わせる** — `public/shared/expand.js` の各配列
-（`COMMERCIAL_SUFFIX` / `HOWTO_SUFFIX` / `ATTRIBUTE_PREFIX` など）を編集します。
-`MODES` に項目を足せば UI のチップも自動で増えます。
-
-**媒体を追加する** — `netlify/lib/engines.js` に `urls` と `parse` を書き、
-`public/shared/engines-meta.js` に表示メタ情報を足すだけです。
-
-**配色・ブランド** — `public/assets/app.css` 冒頭の CSS カスタムプロパティ（`--accent` など）と
-`public/favicon.svg` / `public/assets/ogp.svg` を差し替えます。
-
-**サイト URL** — `public/index.html` の `canonical` / OGP、`public/robots.txt` の Sitemap 行を
-自分のドメインに変更してください（`sitemap.xml` はビルド時に `URL` 環境変数から自動生成されます）。
-
----
-
-## 8. 制限と注意
-
-- 取得元は各社の**公開サジェストエンドポイント**です。仕様変更・地域制限・レート制限により
-  一部媒体が停止することがあります（`/api/health` で確認、UI は自動でスキップ）。
-- 媒体数 × 掛け合わせ数だけ提供元へアクセスします。UI の推定表示が黄色になる規模
-  （約 900 アクセス超）では、掛け合わせか媒体を減らすと安定します。
-- Netlify Functions の実行時間上限（無料枠 10 秒）に収まるよう、1 リクエストあたりの
-  クエリ数を 60、同時取得を 12 に制限しています。
-- 取得したキーワードの利用は自己責任で、各サービスの利用規約に従ってください。
-
----
-
-## 9. ライセンス
+## 8. ライセンス
 
 MIT

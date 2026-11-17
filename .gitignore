@@ -10,4 +10,5 @@ coverage/
 
 # ビルド生成物（scripts/build.mjs が出力）
 public/build-info.json
+public/robots.txt
 public/sitemap.xml

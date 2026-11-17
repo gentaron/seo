@@ -36,39 +36,15 @@ const MIME = {
 /* ---------- モック（外部APIに触れずに UI を検証するため） ---------- */
 
 if (MOCK) {
-  const SUFFIXES = ['おすすめ', '比較', '料金', '評判', 'とは', 'やり方', '初心者', '無料', 'デメリット', '2026'];
-  globalThis.fetch = async (url) => {
-    const u = String(url);
-    const q = decodeURIComponent((u.match(/[?&](?:q|query|prefix|p|search)=([^&]*)/) || [])[1] || 'キーワード');
-    if (u.includes('trends.google')) {
-      const items = ['大谷翔平', '確定申告', '新NISA', '台風情報', '生成AI'].map((query, i) => ({
-        title: { query },
-        formattedTraffic: `${(5 - i) * 10}万+`,
-        relatedQueries: [{ query: `${query} 速報` }],
-        articles: [{ title: `${query}の最新`, url: 'https://example.com', source: 'モック通信' }],
-      }));
-      const body = `)]}',\n${JSON.stringify({
-        default: { trendingSearchesDays: [{ formattedDate: '9月8日', trendingSearches: items }] },
-      })}`;
-      return new Response(body, { status: 200 });
-    }
-    if (u.includes('wikipedia.org')) {
-      if (u.includes('opensearch')) {
-        return new Response(JSON.stringify([q, [q], [''], [`https://ja.wikipedia.org/wiki/${q}`]]), { status: 200 });
-      }
-      if (u.includes('rest_v1')) {
-        return new Response(
-          JSON.stringify({ title: q, extract: `${q} は、モックデータとして生成された説明文です。`, content_urls: { desktop: { page: 'https://ja.wikipedia.org/' } } }),
-          { status: 200 },
-        );
-      }
-      return new Response(JSON.stringify({ query: { pages: { 1: { links: [{ title: `${q} 関連` }, { title: '検索エンジン最適化' }] } } } }), { status: 200 });
-    }
-    // サジェスト系はすべて OpenSearch 形式で返す
-    const list = SUFFIXES.map((s) => `${q} ${s}`).slice(0, 8 + (q.length % 3));
-    return new Response(JSON.stringify([q, list]), { status: 200 });
-  };
-  console.log('[devserver] モックモード: 外部APIには接続しません');
+  const { makeMockFetch, seedHistory } = await import('./mock-web.mjs');
+  const { memoryStore } = await import('../netlify/lib/store.js');
+  const { runPipeline } = await import('../netlify/lib/pipeline.js');
+  const base = Date.now();
+  globalThis.fetch = makeMockFetch({ base });
+  globalThis.__UNDERCURRENT_STORE__ = memoryStore();
+  // 過去 24 時間ぶん（3 時間おき × 8 回）観測した状態を作っておく
+  await seedHistory({ runPipeline, store: globalThis.__UNDERCURRENT_STORE__, base, runs: 8 });
+  console.log('[devserver] モックモード: 外部APIには接続しません（疑似観測 8 回分を投入済み）');
 }
 
 /* ---------- Functions 橋渡し ---------- */
