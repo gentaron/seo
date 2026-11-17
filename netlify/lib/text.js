@@ -92,7 +92,11 @@ export const STOP_EN = new Set(
   why's how-to vs via based-on per cent percent amp quot www com http https html
   explain explained explains mean means meaning meant trend trends trending funny hand finally understand keeps
   saying class getting discourse pov fyp lol lmao omg wtf tho rn ngl tbh imo idk smh fr
-  game games team season film movie song album book app apps tool tools guide review reviews`
+  game games team season film movie song album book app apps tool tools guide review reviews
+  arrested arrest incident incidents stadium viral goes sparks backlash online talking wrong reasons crash police
+  scandal controversy lawsuit charged dies dead death killed missing report reports reportedly claims according
+  breaking latest live updates officials president minister government court judge says said told
+  sources source woman's man's after amid over against video photos watch inside behind`
     .split(/\s+/)
     .filter(Boolean),
 );
@@ -106,7 +110,10 @@ export const STOP_JA = new Set(
   ライブ 配信 放送 番組 生放送 実況 投稿 更新 公開 開始 終了 発売 決定 解説 紹介 方法 理由 結果 問題
   ニコニコ はてな ブックマーク エントリー ホッテントリ ニコ動 ツイート ポスト リツイート
   ネット タイムライン 最近 若者 結局 悲報 朗報 元ネタ 意味 一色 本当 普通 自分 相手 全部 今回 感じ
-  みんな やっぱり ちょっと 解説 ゆっくり解説 してみた 歌ってみた 踊ってみた 実況プレイ 切り抜き`
+  みんな やっぱり ちょっと 解説 ゆっくり解説 してみた 歌ってみた 踊ってみた 実況プレイ 切り抜き
+  炎上 謝罪 逮捕 容疑 容疑者 警視庁 警察 府警 県警 批判 批判殺到 物議 騒動 事件 事故 疑惑 判明 発覚 報道
+  再発防止 再発防止に努める まさか まさかの SNS ネットで話題 話題に 運営 男性 女性 男 女 会社員 無職
+  政府 首相 大臣 総理 発言 会見 記者会見 声明 コメント 現場 死亡 けが 重傷 行方不明 速報値 予想 見通し`
     .split(/\s+/)
     .filter(Boolean),
 );
@@ -115,7 +122,7 @@ export const STOP_JA = new Set(
 export const STOP_ANY = new Set(
   `reddit hacker news hn lobsters github bluesky bsky mastodon misskey lemmy wikipedia youtube tiktok
   twitter x instagram facebook threads google urban dictionary know your meme kym hatena nicovideo niconico
-  main_page メインページ special 特別 -`
+  main_page メインページ special 特別 - sns`
     .split(/\s+/)
     .filter(Boolean),
 );
@@ -169,10 +176,14 @@ export function slangness(term, lang = detectLang(term)) {
 }
 
 /** 候補語として最低限の体裁を満たすか */
+/** ニュース見出しの定型句の断片（「巡り20代」「27歳の男」など）を含む日本語候補は捨てる */
+const RE_JA_NEWS_FRAGMENT = /(巡り|めぐり|\d+代|\d+歳|\d+人|容疑者|警視庁|府警|県警|再発防止|による|について|された|している|していた)/;
+
 export function isPlausibleTerm(display) {
   const t = String(display ?? '');
   const key = normKey(t);
   if (!key || key.length < 2) return false;
+  if (detectLang(key) === 'ja' && RE_JA_NEWS_FRAGMENT.test(key) && key.length > 2) return false;
   if (key.length > 48) return false;
   if (/^[\d\s.,:/%-]+$/.test(key)) return false; // 数値だけ
   if (/^https?:|www\.|\.com\b|\.jp\b/.test(key)) return false;

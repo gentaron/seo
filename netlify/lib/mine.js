@@ -213,7 +213,7 @@ export function mineCandidates(signals) {
     for (const [key, f] of local) {
       let c = cands.get(key);
       if (!c) {
-        c = { key, display: f.display, lang: detectLang(f.display), explicit: false, hits: [], forms: new Map() };
+        c = { key, display: f.display, lang: langWithHint(f.display, sig.lang), explicit: false, hits: [], forms: new Map() };
         cands.set(key, c);
       }
       c.explicit ||= f.explicit;
@@ -265,6 +265,18 @@ export function pruneSubsumed(cands) {
     }
   }
   return cands;
+}
+
+/**
+ * 文字種からの言語判定に、媒体側の言語ヒントを足す
+ * （台湾の漢字だけの語を日本語扱いしない／ハングルを 'ko' にする 等）
+ */
+export function langWithHint(text, hint) {
+  const d = detectLang(text);
+  if (!hint) return d;
+  if (d === 'xx') return hint;
+  if (d === 'ja' && hint !== 'ja' && !RE_HIRA.test(text) && !RE_KATA.test(text)) return hint;
+  return d;
 }
 
 function escapeRe(s) {

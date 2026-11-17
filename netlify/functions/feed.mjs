@@ -1,8 +1,8 @@
 /**
  * GET /api/feed — 最新スナップショット
  *
- *   ?lang=ja|en       言語で絞り込み
- *   ?status=new|surge|spread|cool|revival
+ *   ?lang=ja|en|other 言語で絞り込み
+ *   ?status=new|surge|spread|cool|revival|scandal
  *   ?limit=80
  *
  * スナップショットが 1 つも無い（デプロイ直後）ときだけ、同期で 1 回観測する。
@@ -27,9 +27,10 @@ export default async function handler(request) {
 
   const lang = url.searchParams.get('lang');
   const status = url.searchParams.get('status');
-  const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit')) || 160));
+  const limit = Math.min(300, Math.max(1, Number(url.searchParams.get('limit')) || 300));
   let terms = snap.terms;
-  if (lang === 'ja' || lang === 'en') terms = terms.filter((t) => t.lang === lang);
+  if (lang === 'other') terms = terms.filter((t) => t.lang !== 'ja' && t.lang !== 'en');
+  else if (lang) terms = terms.filter((t) => t.lang === lang);
   if (status) terms = terms.filter((t) => t.status === status || t.badges?.includes(status));
 
   const age = Math.max(0, Math.round((Date.now() - snap.generatedAt) / 1000));

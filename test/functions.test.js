@@ -27,7 +27,9 @@ test('feed：スナップショットが無ければ初回観測して返す', a
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.ok(body.terms.length > 5);
-  assert.equal(body.stats.sourcesUp, 14);
+  assert.equal(body.stats.sourcesUp, body.stats.sourcesTotal);
+  assert.ok(body.stats.sourcesTotal >= 20);
+  assert.ok(body.terms.some((t) => t.badges.includes('scandal')), '炎上・事件の検出');
 });
 
 test('観測を重ねると推移と大全ができる', async () => {
