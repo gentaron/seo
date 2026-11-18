@@ -427,3 +427,21 @@ select {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+
+/* 情勢画面：ネット上の注目度とは別の、説明可能な推定影響度 */
+.world-intro { color:var(--tx-2); max-width:850px; margin:4px 0 20px; }
+.world-controls { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+.world-summary { color:var(--tx-2); font-size:13px; }
+.world-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:14px; }
+.world-event { padding:18px; border-radius:var(--r); background:var(--bg-1); border:1px solid var(--line); min-width:0; }
+.world-event__top { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px; }
+.world-event__cat { color:var(--cool); font-size:12px; font-weight:700; }
+.world-event__impact { color:var(--warm); font:700 13px var(--mono); }
+.world-event h2 { font-size:17px; line-height:1.5; overflow-wrap:anywhere; margin:0 0 8px; }
+.world-event__meta, .world-event__caution { font-size:12px; color:var(--tx-2); margin:8px 0; }
+.world-event__caution { border-left:2px solid var(--warm); padding-left:9px; }
+.world-event__sources { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.world-event__sources a { font-size:12px; color:var(--cool); text-decoration:none; border:1px solid var(--line-2); border-radius:8px; padding:5px 8px; }
+.world-event__sources a:hover { border-color:var(--cool); }
+.world-empty { color:var(--tx-2); border:1px dashed var(--line-2); padding:24px; border-radius:var(--r); }
