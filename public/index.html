@@ -52,6 +52,7 @@
 
   <nav class="tabs" role="tablist" aria-label="表示切り替え">
     <button role="tab" class="tab" data-tab="board" aria-selected="true">トレンド一覧</button>
+    <button role="tab" class="tab" data-tab="world" aria-selected="false">世界の情勢</button>
     <button role="tab" class="tab" data-tab="feed" aria-selected="false">潮流フィード</button>
     <button role="tab" class="tab" data-tab="lexicon" aria-selected="false">スラング大全</button>
     <button role="tab" class="tab" data-tab="raw" aria-selected="false">生データ</button>
@@ -91,7 +92,7 @@
         <option value="mainstream">ニュース・一般</option>
       </select>
       <select id="b-sort" aria-label="並び順">
-        <option value="score">注目度順</option>
+        <option value="score">注目度順（社会的影響度とは別）</option>
         <option value="vel">伸び率順</option>
         <option value="first">開始が新しい順</option>
         <option value="spread">拡散範囲順</option>
@@ -107,6 +108,26 @@
       </table>
     </div>
     <div class="empty" id="board-empty" hidden>条件に合うトレンドがありません。</div>
+  </section>
+
+  <!-- ============ 世界の情勢：トレンド熱量とは別尺度 ============ -->
+  <section class="panel" data-panel="world" hidden>
+    <h1 class="h1">世界の情勢 <small class="mute">ネットの熱量ではなく、変化の重要度を見る</small></h1>
+    <p class="world-intro">サイバー攻撃、社会インフラ、地政学、金融、政治制度などの公開見出しを整理します。重要度はルールベースの暫定推定で、<strong>複数媒体で言及されても事実確認済みとは限りません。</strong> 元の投稿・記事を必ず確認してください。</p>
+    <div class="world-controls">
+      <select id="world-cat" aria-label="情勢の分野">
+        <option value="">全分野</option>
+        <option value="security">サイバー・セキュリティ</option>
+        <option value="infrastructure">社会インフラ</option>
+        <option value="geopolitics">地政学・安全保障</option>
+        <option value="markets">経済・金融</option>
+        <option value="policy">政治・制度</option>
+        <option value="technology">科学・テクノロジー</option>
+      </select>
+      <span class="world-summary" id="world-summary">観測データを確認中…</span>
+    </div>
+    <div class="world-grid" id="world-events"></div>
+    <p class="world-empty" id="world-empty" hidden>現在の観測データに、重要度を推定できる見出しはありません。</p>
   </section>
 
   <!-- ============ 潮流フィード ============ -->

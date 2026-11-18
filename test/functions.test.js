@@ -27,6 +27,8 @@ test('feed：スナップショットが無ければ初回観測して返す', a
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.ok(body.terms.length > 5);
+  assert.equal(body.v, 2);
+  assert.ok(Array.isArray(body.analysis.events));
   assert.equal(body.stats.sourcesUp, 14);
 });
 

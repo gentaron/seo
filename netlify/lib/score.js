@@ -13,6 +13,7 @@
  */
 
 import { slangness, detectLang } from './text.js';
+import { isGenericTerm } from './intelligence.js';
 
 export const RUN_INTERVAL_H = 3; // netlify.toml / collect の cron と揃える
 const EMA_ALPHA = 0.35;
@@ -65,6 +66,8 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
   const scored = [];
 
   for (const c of candidates.values()) {
+    // Generic words in one GitHub repository are not independent trends.
+    if (c.hits.every((h) => signals[h.i]?.src === 'github') && isGenericTerm(c.display)) continue;
     const perSrc = new Map();
     let mainstreamHit = false;
     let slangSrc = false;
