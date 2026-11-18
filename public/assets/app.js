@@ -200,6 +200,42 @@ function bindBoard() {
   });
 }
 
+/* ---------------- 世界の情勢（注目度とは別の採点） ---------------- */
+function safeWorldUrl(value) {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : '#';
+  } catch { return '#'; }
+}
+
+function renderWorld() {
+  const analysis = state.snap?.analysis;
+  const summary = $('#world-summary');
+  const root = $('#world-events');
+  if (!root || !summary) return;
+  if (!analysis) {
+    summary.textContent = '旧形式の観測データです。次回の収集後に分析が表示されます。';
+    root.innerHTML = '';
+    $('#world-empty').hidden = true;
+    return;
+  }
+  const category = $('#world-cat').value;
+  const events = (analysis.events || []).filter((e) => !category || e.category === category);
+  const st = analysis.stats || {};
+  summary.textContent = events.length + ' 件 · ' + (st.reviewed || 0) + ' 件の観測を分析 · 不審な配布宣伝 ' + (st.flagged || 0) + ' 件を除外 · 重複 ' + (st.duplicates || 0) + ' 件を整理';
+  root.innerHTML = events.map((e) => [
+    '<article class="world-event">',
+    '<div class="world-event__top"><span class="world-event__cat">', esc(e.categoryLabel), '</span><span class="world-event__impact">推定影響度 ', esc(e.impact), '/100</span></div>',
+    '<h2>', esc(e.title), '</h2>',
+    '<p class="world-event__meta">', ago(e.at), ' · ', esc(e.status), ' · ', esc(e.sourceCount), '媒体で観測</p>',
+    '<p class="world-event__caution">', esc(e.caution), '</p>',
+    '<div class="world-event__sources">',
+    (e.evidence || []).map((s) => '<a href="' + esc(safeWorldUrl(s.url)) + '" target="_blank" rel="noopener noreferrer nofollow" title="' + esc(s.title) + '">' + esc(srcMeta(s.source).label) + '：情報源 ↗</a>').join(''),
+    '</div></article>',
+  ].join('')).join('');
+  $('#world-empty').hidden = events.length > 0;
+}
+
 /* ---------------- フィード ---------------- */
 function filteredTerms() {
   const terms = state.snap?.terms ?? [];
@@ -338,6 +374,7 @@ function applySnap(snap) {
   state.snap = snap;
   state.pendingSnap = null;
   renderBoard();
+  renderWorld();
   renderFeed();
   renderTicker();
   renderSide();
@@ -552,6 +589,7 @@ function showTab(tab) {
   $$('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   $$('.panel').forEach((p) => (p.hidden = p.dataset.panel !== tab));
   setParam('tab', tab === 'board' ? '' : tab);
+  if (tab === 'world') renderWorld();
   if (tab === 'lexicon') loadLexicon();
   if (tab === 'raw') renderRaw();
   if (tab === 'notes') renderNotes();
@@ -567,6 +605,7 @@ function initTheme() {
 /* ---------------- イベント ---------------- */
 function bind() {
   bindBoard();
+  $('#world-cat').addEventListener('change', renderWorld);
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-open],[data-star],[data-copy],[data-lexq],[data-page]');
     if (!t) return;
