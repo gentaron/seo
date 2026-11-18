@@ -10,6 +10,7 @@
 import { SOURCES, SOURCE_MAP, sourceMeta } from './sources.js';
 import { mineCandidates } from './mine.js';
 import { scoreRun, RUN_INTERVAL_H } from './score.js';
+import { prepareSignals, buildWorldBrief } from './intelligence.js';
 
 export const KEYS = {
   latest: 'latest',
@@ -77,9 +78,11 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
     ]);
 
     const signals = reports.flatMap((r) => r.signals);
-    const candidates = mineCandidates(signals);
+    // Preserve the raw streams for auditing; score only deduplicated, safe signals.
+    const { clean: usableSignals, rejected } = prepareSignals(signals);
+    const candidates = mineCandidates(usableSignals);
     const { terms, lexicon: nextLexicon, considered } = scoreRun({
-      signals,
+      signals: usableSignals,
       candidates,
       sourceMap: SOURCE_MAP,
       lexicon,
@@ -88,7 +91,7 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
 
     const snapshot = {
       ok: true,
-      v: 1,
+      v: 2,
       runId: new Date(now).toISOString(),
       generatedAt: now,
       nextRunAt: nextScheduled(now),
@@ -97,6 +100,8 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
       tookMs: Date.now() - started,
       stats: {
         signals: signals.length,
+        usableSignals: usableSignals.length,
+        excludedSignals: rejected.length,
         candidates: candidates.size,
         considered,
         lexicon: Object.keys(nextLexicon).length,
@@ -108,6 +113,7 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
         return { ...m, ok: !!r?.ok, count: r?.count ?? 0, ms: r?.ms ?? 0, error: r?.error };
       }),
       terms,
+      analysis: buildWorldBrief(usableSignals, { now, rejected }),
       streams: Object.fromEntries(
         reports
           .filter((r) => r.signals.length)
@@ -122,7 +128,7 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
     };
 
     // 取得が全滅した回は台帳を汚さない（前回スナップショットを残す）
-    if (signals.length === 0) {
+    if (usableSignals.length === 0) {
       const prev = await store.get(KEYS.latest);
       return { ...(prev || snapshot), ok: !!prev, degraded: true, sources: snapshot.sources, tookMs: snapshot.tookMs };
     }
