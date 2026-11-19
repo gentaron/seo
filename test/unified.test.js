@@ -52,3 +52,25 @@ test('bridge reads only observed, evidenced QAIZ feed items', async () => {
     delete process.env.QAIZ_PUBLIC_URL;
   }
 });
+
+
+test('production bridge defaults to public QAIZ URL when Netlify env is unset', async () => {
+  delete process.env.QAIZ_PUBLIC_URL;
+  const oldFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.equal(url, 'https://qaiz.gen5wx.workers.dev/api/feed');
+    return new Response(JSON.stringify({ schema: 'gentaron.feed/1', generatedAt: '2026-11-19T00:00:00Z', items: [
+      { evidence: 'observed', url: 'https://qaiz.gen5wx.workers.dev/api/regime', title: 'Observed market regime' },
+    ] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const res = await unified(request());
+    assert.equal(res.status, 200);
+    const b = await res.json();
+    assert.equal(b.qaiz.status, 'ok');
+    assert.equal(b.qaiz.feed.items.length, 1);
+    assert.equal(b.inferenceStatus, 'not-evaluated');
+  } finally {
+    globalThis.fetch = oldFetch;
+  }
+});
