@@ -56,3 +56,26 @@ test('古い見出しとGitHub宣伝は情勢ニュースに混ぜない', () =>
   ];
   assert.equal(buildWorldBrief(input, { now: NOW }).events.length, 0);
 });
+
+
+test('別々のCVEは見出しが似ていても同じ事件にしない', () => {
+  const input = [
+    signal('hatena', 'NGINX CVE-2026-123007 vulnerability detected in HTTP2 parser', 'https://example.com/nginx-1'),
+    signal('hatena', 'NGINX CVE-2026-123633 vulnerability detected in HTTP2 parser', 'https://example.com/nginx-2'),
+  ];
+  const result = buildWorldBrief(input, { now: NOW });
+  assert.equal(result.events.length, 2);
+  assert.ok(result.events.every((e) => e.verificationStatus === 'unverified'));
+  assert.ok(result.events.every((e) => e.id.startsWith('uc-')));
+});
+
+test('GitHubのチート関連語を配布宣伝として除外し報道記事は残す', () => {
+  const input = [
+    signal('github', 'ROB-RUN-Aim-WH-Hacks — Wallhack ESP tools', 'https://github.com/example/rob-run-aimbot'),
+    signal('github', 'ROB RUN mod menu free download', 'https://github.com/example/rob-run-mod'),
+    signal('hatena', 'Security researchers investigate game cheat malware', 'https://example.com/report'),
+  ];
+  const { clean, rejected } = prepareSignals(input);
+  assert.equal(clean.length, 1);
+  assert.equal(rejected.length, 2);
+});
