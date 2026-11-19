@@ -63,12 +63,15 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
   const started = Date.now();
   const deadline = started + budgetMs - 1500; // 保存のための余白を残す
 
-  // 二重起動を緩くガード（Blobs に原子的ロックは無いので TTL つきの目印）
+  // Scheduled / manual / bootstrap all share a best-effort lock.
+  // Netlify Blobs has no compare-and-swap: this mitigates common overlaps but
+  // is NOT a distributed mutex. Preserve the acquisition token on release.
   const lock = await store.get(KEYS.lock);
-  if (lock && Date.now() - lock.at < LOCK_TTL_MS && trigger !== 'schedule') {
+  if (lock && Date.now() - lock.at < LOCK_TTL_MS && Date.now() >= lock.at) {
     return { skipped: true, reason: 'locked' };
   }
-  await store.set(KEYS.lock, { at: Date.now(), trigger });
+  const lockAt = Date.now();
+  await store.set(KEYS.lock, { at: lockAt, trigger });
 
   try {
     const [reports, lexicon, meta] = await Promise.all([
@@ -145,7 +148,9 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
     ]);
     return snapshot;
   } finally {
-    await store.set(KEYS.lock, { at: 0 }).catch(() => {});
+    // A later run may have acquired the lock: don't blindly clear its token.
+    const current = await store.get(KEYS.lock).catch(() => null);
+    if (current?.at === lockAt) await store.set(KEYS.lock, { at: 0 }).catch(() => {});
   }
 }
 
