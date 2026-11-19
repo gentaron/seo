@@ -16,7 +16,7 @@ test('bridge validates configured host instead of accepting user-supplied fetch 
 });
 
 test('bridge retains separately labeled observations when QAIZ is not configured', async () => {
-  delete process.env.QAIZ_PUBLIC_URL;
+  process.env.QAIZ_PUBLIC_URL = 'disabled';
   const ts = Date.parse('2026-11-19T00:00:00Z');
   await store.set('latest', {
     generatedAt: ts, stats: { sourcesUp: 9, sourcesTotal: 14 },
@@ -30,6 +30,7 @@ test('bridge retains separately labeled observations when QAIZ is not configured
   assert.equal(b.undercurrent.verificationStatus, 'unverified');
   assert.equal(b.inferenceStatus, 'not-evaluated');
   assert.deepEqual(b.jointSignals, []);
+  delete process.env.QAIZ_PUBLIC_URL;
 });
 
 test('bridge reads only observed, evidenced QAIZ feed items', async () => {
