@@ -61,7 +61,12 @@ export default async function handler(request) {
   const snapshot = await store.get(KEYS.latest);
   if (!snapshot?.analysis?.events) return error('UNDERCURRENT観測がありません', 503);
 
-  const qaiz = await loadQaiz(qaizFeedUrl(process.env.QAIZ_PUBLIC_URL));
+  // Production QAIZ URL is public, not a secret. The Netlify account may not
+  // grant environment-variable editing; an operator may still override it.
+  // Explicit "disabled" opts out for development and incident response.
+  const configuredQaiz = process.env.QAIZ_PUBLIC_URL === 'disabled'
+    ? null : (process.env.QAIZ_PUBLIC_URL || 'https://qaiz.gen5wx.workers.dev');
+  const qaiz = await loadQaiz(qaizFeedUrl(configuredQaiz));
   return json({
     schema: UNIFIED_SCHEMA,
     generatedAt: new Date(snapshot.generatedAt).toISOString(),
