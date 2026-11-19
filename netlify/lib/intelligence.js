@@ -6,7 +6,12 @@
 const SUSPECT_GITHUB = /(?:\b(?:crack(?:ed)?|keygen|activator|activation|cheat|pirated?|undetected)\b|dlc[-_ ]?unl[o0]ck|free[-_ ]?adobe|genp|unlock(?:er|ed)[-_ ]?(?:dlc|tool)|(?:office|capcut|filmora|lightroom|after.effects|indesign)[-_ ]?(?:pro[-_ ]?)?(?:for[-_ ]?)?(?:windows|macos)[-_ ]?and[-_ ]?)/i;
 const GENERIC = new Set(['windows','mode','zero','system','server','desktop','software','private','ready','test','rule','named','major','awesome','lightweight','animation','automation','computer','developer-tools','open-source','管理','分析','新聞']);
 export const isGenericTerm = (word) => GENERIC.has(String(word || '').normalize('NFKC').toLowerCase().trim());
-export const isSuspiciousSignal = (s) => s?.src === 'github' && SUSPECT_GITHUB.test([s.text,s.ctx,s.url].join(' '));
+// Restrict promotional cheat/unauthorized distribution filtering to GitHub repository listings.
+// A legitimate security report mentioning an exploit is not a downloadable cheat release.
+const SUSPICIOUS_GITHUB_DISTRIBUTION = /(?:\b(?:aimbot|wallhack|cheats?|keygen|pirated|cracked|activator|auto[-_ ]?farm|mod[-_ ]?menu|premium[-_ ]?free|fully[-_ ]?unlocked)\b|\b(?:aim[-_ ]?wh[-_ ]?hacks|rob[-_ ]?run[-_ ]?(?:aim|bush|cheat))\b)/i;
+export const isSuspiciousSignal = (s) =>
+  s?.src === 'github' && (SUSPECT_GITHUB.test([s.text,s.ctx,s.url].join(' ')) ||
+    SUSPICIOUS_GITHUB_DISTRIBUTION.test([s.text,s.ctx,s.url].join(' ')));
 
 function canonicalUrl(raw) {
   try {
@@ -51,7 +56,22 @@ function keywords(title) {
   const parts = String(title).toLowerCase().normalize('NFKC').match(/[a-z][a-z0-9-]{2,}|[\p{Script=Han}]{2,}|[\p{Script=Katakana}]{2,}/gu) || [];
   return [...new Set(parts.filter((x) => x.length > 2 && !STOP.has(x)))];
 }
+function cveIds(title) {
+  return [...new Set((String(title).match(/CVE-\d{4}-\d{4,}/gi) || []).map((x) => x.toUpperCase()))].sort();
+}
+function eventId(g) {
+  // Stable for one CVE or one canonical source URL; not an assertion of identity across syndication.
+  const key = g.cves.length ? g.cves.join('+') : g.category + '|' + g.urlKey;
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return 'uc-' + (hash >>> 0).toString(16).padStart(8, '0');
+}
 function sameEvent(g, x) {
+  // Similar headlines about different disclosed vulnerabilities are different incidents.
+  if (g.cves.length && x.cves.length && !g.cves.some((id) => x.cves.includes(id))) return false;
   if (g.category !== x.category) return false;
   if (g.urlKey && g.urlKey === x.urlKey) return true;
   const a = new Set(g.words), b = new Set(x.words);
@@ -72,7 +92,7 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [] } = {
     if (ageH > 72) continue;
     const url = canonicalUrl(s.url);
     if (!url) continue;
-    const item = { title, category:cat.id, label:cat.label, base:cat.base, words:keywords(title), urlKey:url, source:s.src, url, ts, cautious:CAUTION.test(title) };
+    const item = { title, category:cat.id, label:cat.label, base:cat.base, words:keywords(title), urlKey:url, source:s.src, url, ts, cves:cveIds(title), cautious:CAUTION.test(title) };
     let group = groups.find((g) => sameEvent(g, item));
     if (!group) { group = { ...item, evidence:[], latest:ts }; groups.push(group); }
     if (!group.evidence.some((e) => e.source === item.source && e.url === url)) group.evidence.push({ source:item.source, title, url, ts });
@@ -91,7 +111,9 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [] } = {
       if (evidence.length >= 5) break;
     }
     return {
-      title:g.title, category:g.category, categoryLabel:g.label, impact, at:g.latest,
+      id:eventId(g), title:g.title, category:g.category, categoryLabel:g.label, impact, at:g.latest,
+      verificationStatus:'unverified',
+      corroborationStatus:nPublishers > 1 ? 'multiple-publisher-domains-not-independent-verification' : 'single-publisher-domain',
       sourceCount:nSources, publisherCount:nPublishers, evidence,
       status:nSources > 1 ? '複数チャネルで言及・真偽未検証' : '単独観測・真偽未検証',
       caution:g.cautious ? '予測・疑惑・時点依存の表現を含む可能性。一次情報で確認してください。' : '重要度は自動推定です。内容の真偽は一次情報で確認してください。',
