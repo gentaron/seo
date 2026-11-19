@@ -63,3 +63,11 @@ test('rss：RSS 2.0 を返す', async () => {
 test('term：台帳に無い語は 404', async () => {
   assert.equal((await term(req('/api/term?k=zzzznotaword'))).status, 404);
 });
+
+
+test('スケジュール実行も同時実行ロックを尊重する', async () => {
+  const isolated = memoryStore();
+  await isolated.set('lock', { at: Date.now(), trigger: 'manual' });
+  const r = await runPipeline({ store: isolated, budgetMs: 1000, trigger: 'schedule' });
+  assert.deepEqual(r, { skipped: true, reason: 'locked' });
+});
