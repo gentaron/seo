@@ -7,6 +7,7 @@
  *     score : 媒体内のエンゲージメント（いいね・票・閲覧など、媒体ごとにスケールは別）
  *     terms : 媒体が明示している語（ハッシュタグ・トピック名）。post は本文から mine.js が掘る
  *     vel   : 媒体自身が持つ勢いの手がかり（0〜1、任意）
+ *     link  : 投稿が外部記事を指す場合、その元記事 URL（任意。情報源の種類・独立性の判定に使う）
  *
  * どれか一つが落ちても全体は止めない（pipeline 側で allSettled 相当に扱う）。
  */
@@ -216,6 +217,7 @@ async function reddit(ctx) {
           kind: 'post',
           text: d.title,
           url: `https://www.reddit.com${d.permalink}`,
+          link: !d.is_self && d.url && !/reddit\.com|redd\.it/.test(d.url) ? d.url : undefined,
           score: num(d.score) + num(d.num_comments) * 2,
           ts: num(d.created_utc) * 1000 || now(),
           ctx: `r/${d.subreddit}`,
@@ -244,6 +246,7 @@ async function hackernews(ctx) {
         kind: 'post',
         text: h.title.replace(/^(Show|Ask|Tell|Launch) HN:\s*/i, ''),
         url: `https://news.ycombinator.com/item?id=${h.objectID}`,
+        link: h.url || undefined, // 投稿が指している元記事（情報源の種類判定用）
         score: num(h.points) + num(h.num_comments),
         ts: num(h.created_at_i) * 1000 || now(),
         ctx: 'HN',
@@ -264,6 +267,7 @@ async function lobsters(ctx) {
     kind: 'post',
     text: s.title,
     url: s.short_id_url || s.comments_url || s.url,
+    link: s.url || undefined,
     score: num(s.score) + num(s.comment_count),
     ts: parseDate(s.created_at) || now(),
     ctx: (s.tags ?? []).join(' '),
@@ -464,6 +468,7 @@ async function lemmy(ctx) {
       kind: 'post',
       text: p.post?.name ?? '',
       url: p.post?.ap_id || p.post?.url || '',
+      link: p.post?.url && p.post.url !== p.post.ap_id ? p.post.url : undefined,
       score: num(p.counts?.score) + num(p.counts?.comments) * 2,
       ts: parseDate(p.post?.published) || now(),
       ctx: p.community?.name ? `!${p.community.name}` : '',

@@ -14,6 +14,7 @@
 
 import { slangness, detectLang } from './text.js';
 import { isGenericTerm } from './intelligence.js';
+import { trendDirection, periodicityOf, voiceOf } from './trend.js';
 
 export const RUN_INTERVAL_H = 3; // netlify.toml / collect の cron と揃える
 const EMA_ALPHA = 0.35;
@@ -60,14 +61,21 @@ function recency(ts, now) {
  * @param {Record<string, object>} p.lexicon   既存の台帳（key → entry）
  * @param {number} p.now
  * @param {number} [p.limit]
+ * @param {number[]} [p.stories]  シグナルごとのストーリー ID（trend.groupStories）。同じ記事の転載を 1 件と数える
  */
-export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = Date.now(), limit = 160 }) {
+export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = Date.now(), limit = 160, stories = null }) {
   const pct = engagementPercentiles(signals);
+  const storyOf = (i) => (stories ? stories[i] : i);
   const scored = [];
+  let droppedGeneric = 0;
 
   for (const c of candidates.values()) {
-    // Generic words in one GitHub repository are not independent trends.
-    if (c.hits.every((h) => signals[h.i]?.src === 'github') && isGenericTerm(c.display)) continue;
+    // 文脈のない一般語（proof / bad / home / user …）は単独のトレンドにしない。
+    // 元の投稿はその語を含む別の（より具体的な）語やクラスタの根拠として残る。
+    if (isGenericTerm(c.display)) {
+      droppedGeneric += 1;
+      continue;
+    }
     const perSrc = new Map();
     let mainstreamHit = false;
     let slangSrc = false;
@@ -82,6 +90,8 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
       velHint = Math.max(velHint, sig.vel || 0);
     }
     const spread = perSrc.size;
+    const posts = new Set(c.hits.map((h) => storyOf(h.i))).size;
+    const voices = new Set(c.hits.map((h) => voiceOf(signals[h.i]))).size;
     // 1 媒体の中で何度も出ても頭打ち（大量投稿 1 媒体に引っ張られないように）
     let heat = 0;
     for (const v of perSrc.values()) heat += Math.min(v, 2.5);
@@ -93,10 +103,29 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
     const slang = clamp(shape + (slangSrc ? 0.2 : 0), 0, 1);
     const enough = c.explicit || c.hits.length >= 2 || (slangSrc && shape >= 0.45);
     if (!enough || heat <= 0) continue;
+    // 本文から掘っただけの小文字 1 語・1 媒体・造語らしさもない語は、一般語の可能性が高いので候補から外す
+    if (!c.explicit && spread === 1 && slang < 0.35 && lang === 'en' && /^[a-z][a-z'-]*$/.test(c.display)) {
+      droppedGeneric += 1;
+      continue;
+    }
 
     const prev = lexicon[c.key];
-    const ema = prev?.ema ?? 0;
-    const velocity = prev ? clamp((heat - ema) / (ema + 0.6), -1, 5) : clamp(heat / 0.6, 0, 5);
+    const lastPt = prev?.hist?.[prev.hist.length - 1];
+    const periodic = periodicityOf(c.display, prev?.hist, now, heat);
+    const trend = trendDirection({
+      cur: heat,
+      ema: prev ? prev.ema : null,
+      prevHeat: lastPt?.[1] ?? null,
+      prevAt: prev?.last ?? null,
+      posts,
+      prevPosts: lastPt?.[2] ?? null,
+      spread,
+      voices,
+      periodic,
+      now,
+      intervalH: RUN_INTERVAL_H,
+    });
+    const velocity = trend.velocity;
     const firstSeen = prev?.first ?? now;
     const ageH = (now - firstSeen) / 3.6e6;
     const novelty = Math.exp(-ageH / 36);
@@ -126,6 +155,9 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
       raw,
       prev,
       firstSeen,
+      posts,
+      voices,
+      trend,
     });
   }
 
@@ -153,7 +185,8 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
         .slice(0, 4)
         .map((sig) => ({ x: String(sig.text).slice(0, 200), u: sig.url, s: sig.src, ts: sig.ts || now, c: sig.ctx || '' })),
     );
-    const hist = [...(prev?.hist ?? []), [now, round(s.heat, 3)]].slice(-HIST_LEN);
+    // [観測時刻, 熱量, 独立した投稿数]（3 要素目は後から追加。古い台帳は 2 要素のまま読める）
+    const hist = [...(prev?.hist ?? []), [now, round(s.heat, 3), s.posts]].slice(-HIST_LEN);
     const srcCount = { ...(prev?.srcs ?? {}) };
     for (const id of s.srcs) srcCount[id] = (srcCount[id] || 0) + 1;
     const score = Math.round((100 * s.raw) / max);
@@ -187,6 +220,10 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
         heat: round(s.heat),
         vel: round(s.velocity),
         spread: s.spread,
+        posts: s.posts,
+        voices: s.voices,
+        dir: s.trend.dir,
+        basis: s.trend.basis,
         srcs: s.srcs,
         cat: categoryOf(s.srcs, sourceMap),
         status: status.main,
@@ -198,11 +235,14 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
         hl: halfLife(hist),
         spark: hist.slice(-16).map((h) => h[1]),
         samples: samples.slice(0, 3),
+        // 内部用：この語が出たシグナルの添字（クラスタリング用。スナップショット保存前に取り除く）
+        _hits: c.hits.map((h) => h.i),
+        _heat: s.heat,
       });
     }
   });
 
-  return { terms, lexicon: pruneLexicon(next, now), considered: scored.length };
+  return { terms, lexicon: pruneLexicon(next, now), considered: scored.length, droppedGeneric };
 }
 
 /** 一番効いている媒体（主流の物差しは除く）のジャンルをカテゴリにする */

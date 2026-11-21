@@ -27,8 +27,14 @@ test('feed：スナップショットが無ければ初回観測して返す', a
   assert.equal(res.status, 200);
   const body = await res.json();
   assert.ok(body.terms.length > 5);
-  assert.equal(body.v, 2);
+  assert.equal(body.v, 3);
   assert.ok(Array.isArray(body.analysis.events));
+  assert.ok(Array.isArray(body.trends) && body.trends.length > 3);
+  assert.ok(body.summary && Array.isArray(body.summary.changes));
+  assert.ok(body.method?.direction);
+  // 内部フィールドは公開しない
+  assert.ok(body.terms.every((t) => !('_hits' in t)));
+  assert.ok(body.trends.every((c) => !('_urls' in c) && !('_memberKeys' in c)));
   assert.equal(body.stats.sourcesUp, 14);
 });
 

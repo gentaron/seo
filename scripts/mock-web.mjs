@@ -35,6 +35,45 @@ const WAVES = [
   { t: 'ヤバみ', peak: -80, w: 60 },
 ];
 
+/**
+ * 世界のニュース（同じ出来事が複数の媒体・言語で報じられる）。
+ * 統合・検証状態・重要度・関連分析の確認用。link は投稿が指す元記事。
+ */
+const NEWS = [
+  {
+    id: 'riemann', peak: -3, w: 20,
+    hn: { title: 'Claude proves the Riemann Hypothesis; proof formally verified in Lean', link: 'https://arxiv.org/abs/2611.01234' },
+    reddit: { title: 'An AI just proved the Riemann Hypothesis and the Lean proof checks out?', link: 'https://www.quantamagazine.org/ai-riemann-hypothesis-lean-proof-20261120/' },
+    hatena: { title: 'リーマン予想をAIが証明、Leanで形式検証 数学者は独立検証を待つ', link: 'https://www.quantamagazine.org/ai-riemann-hypothesis-lean-proof-20261120/' },
+    lobsters: { title: 'Lean proof of the Riemann Hypothesis: notes on verification', link: 'https://arxiv.org/abs/2611.01234' },
+    bsky: 'Riemann Hypothesis',
+  },
+  {
+    id: 'aistocks', peak: -6, w: 14,
+    hn: { title: 'AI chip stocks slide as investors question data center spending', link: 'https://www.reuters.com/markets/ai-chip-stocks-slide-2026-11-20/' },
+    hatena: { title: 'AI関連株が大幅安、データセンター投資に懸念 NVIDIA株価下落', link: 'https://www.nikkei.com/article/ai-stocks-20261120' },
+    reddit: { title: 'AI chip stocks slide again, is the bubble popping?', link: 'https://www.bloomberg.com/news/articles/2026-11-20/ai-chip-stocks-slide' },
+  },
+  {
+    id: 'airegulation', peak: -9, w: 24,
+    hn: { title: 'EU regulators open probe into AI training data under the AI Act', link: 'https://www.theverge.com/2026/11/20/eu-ai-act-training-data-probe' },
+    hatena: { title: '欧州委員会、AI規制法に基づき学習データの調査を開始', link: 'https://ec.europa.eu/commission/presscorner/detail/en/ip_26_1234' },
+  },
+  {
+    id: 'databacklash', peak: -4, w: 12,
+    reddit: { title: 'Backlash grows as app quietly uses user photos as AI training data', link: 'https://www.404media.co/app-ai-training-data-backlash/' },
+    hatena: { title: '写真アプリが無断で生成AIの学習データに利用、ユーザーの反発広がる', link: 'https://www.itmedia.co.jp/news/articles/2611/20/news100.html' },
+  },
+  {
+    id: 'hoax', peak: -2, w: 6,
+    reddit: { title: 'Viral claim that a city banned smartphones is a hoax, officials say', link: 'https://apnews.com/article/smartphone-ban-hoax-fact-check' },
+  },
+];
+
+function liveNews(now, base) {
+  return NEWS.map((n) => ({ ...n, h: heatAt(n, now, base) })).filter((n) => n.h > 0.15);
+}
+
 /** 主流（どこでも話題になっているが “ニッチ” ではない） */
 const MAINSTREAM = ['World Series', 'Election', '大谷翔平', '紅白歌合戦', 'iPhone 18', 'Taylor Swift'];
 
@@ -92,7 +131,7 @@ export function makeMockFetch({ base = Date.now() } = {}) {
     if (u.includes('bsky.app')) {
       if (u.includes('getTrends'))
         return ok({
-          trends: [...enLive.slice(0, 6), ...jaLive.slice(0, 2)].map((w) => ({
+          trends: [...enLive.slice(0, 6), ...jaLive.slice(0, 2), ...liveNews(now, base).filter((n) => n.bsky).map((n) => ({ t: n.bsky, h: n.h }))].map((w) => ({
             topic: w.t,
             displayName: w.t,
             link: `/search?q=${encodeURIComponent(w.t)}`,
@@ -141,6 +180,9 @@ export function makeMockFetch({ base = Date.now() } = {}) {
         }
       }
       children.push({ data: { title: `${MAINSTREAM[0]} game 7 thread`, permalink: '/r/x/1', score: 50, num_comments: 3, created_utc: now / 1000, subreddit: 'sports' } });
+      for (const n of liveNews(now, base).filter((x) => x.reddit)) {
+        children.push({ data: { title: n.reddit.title, permalink: `/r/whennews/comments/${n.id}/x/`, url: n.reddit.link, is_self: false, score: Math.round(n.h * 1500), num_comments: Math.round(n.h * 400), created_utc: Math.floor((now - 2 * H) / 1000), subreddit: 'whennews' } });
+      }
       return ok({ data: { children } });
     }
     if (u.includes('hn.algolia.com')) {
@@ -149,10 +191,19 @@ export function makeMockFetch({ base = Date.now() } = {}) {
           { objectID: '1', title: 'Show HN: A vibe coding tool that writes vibe coding tools', points: 340, num_comments: 120, created_at_i: Math.floor(now / 1000) - 3600 },
           { objectID: '2', title: 'The unreasonable effectiveness of SQLite', points: 220, num_comments: 80, created_at_i: Math.floor(now / 1000) - 7200 },
           { objectID: '3', title: 'Why everyone is talking about the clanker discourse', points: Math.round(150 * (enLive.find((w) => w.t === 'clanker')?.h ?? 0.1)), num_comments: 40, created_at_i: Math.floor(now / 1000) - 9000 },
+          ...liveNews(now, base)
+            .filter((n) => n.hn)
+            .map((n, i) => ({ objectID: `n${i}${n.id}`, title: n.hn.title, url: n.hn.link, points: Math.round(n.h * 900), num_comments: Math.round(n.h * 500), created_at_i: Math.floor(now / 1000) - 5000 })),
         ],
       });
     }
-    if (u.includes('lobste.rs')) return ok([{ title: 'Vibe coding considered harmful', short_id_url: 'https://lobste.rs/s/abc', score: 40, comment_count: 22, created_at: new Date(now - 4 * H).toISOString(), tags: ['ai'] }]);
+    if (u.includes('lobste.rs'))
+      return ok([
+        { title: 'Vibe coding considered harmful', short_id_url: 'https://lobste.rs/s/abc', score: 40, comment_count: 22, created_at: new Date(now - 4 * H).toISOString(), tags: ['ai'] },
+        ...liveNews(now, base)
+          .filter((n) => n.lobsters)
+          .map((n) => ({ title: n.lobsters.title, short_id_url: `https://lobste.rs/s/${n.id}`, url: n.lobsters.link, score: Math.round(n.h * 80), comment_count: 30, created_at: new Date(now - 3 * H).toISOString(), tags: ['math'] })),
+      ]);
     if (u.includes('trends.google')) {
       const isJP = u.includes('geo=JP');
       return rss(
@@ -207,6 +258,9 @@ export function makeMockFetch({ base = Date.now() } = {}) {
           });
       }
       items.push({ title: '大谷翔平、今季も記録更新', link: 'https://example.jp/ohtani', extra: '<hatena:bookmarkcount>900</hatena:bookmarkcount>' });
+      for (const n of liveNews(now, base).filter((x) => x.hatena)) {
+        items.push({ title: n.hatena.title, link: n.hatena.link, extra: `<hatena:bookmarkcount>${Math.round(n.h * 1200)}</hatena:bookmarkcount>` });
+      }
       return rss(items);
     }
     if (u.includes('nicovideo.jp')) {

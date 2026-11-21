@@ -4,7 +4,22 @@
  */
 
 const SUSPECT_GITHUB = /(?:\b(?:crack(?:ed)?|keygen|activator|activation|cheat|pirated?|undetected)\b|dlc[-_ ]?unl[o0]ck|free[-_ ]?adobe|genp|unlock(?:er|ed)[-_ ]?(?:dlc|tool)|(?:office|capcut|filmora|lightroom|after.effects|indesign)[-_ ]?(?:pro[-_ ]?)?(?:for[-_ ]?)?(?:windows|macos)[-_ ]?and[-_ ]?)/i;
-const GENERIC = new Set(['windows','mode','zero','system','server','desktop','software','private','ready','test','rule','named','major','awesome','lightweight','animation','automation','computer','developer-tools','open-source','管理','分析','新聞']);
+// Context-free common words: never a trend on their own (their posts still feed the
+// clusters they belong to). Single words only; multi-word phrases are judged elsewhere.
+const GENERIC = new Set(`windows mode zero system server desktop software private ready test rule named major awesome
+  lightweight animation automation computer developer-tools open-source proof bad good home user users data model models
+  code project projects version release releases launch feature features support issue issues problem problems change changes
+  power energy money price prices report reports study research paper papers plan plans deal deals list case cases story
+  stories life love family friend friends house school city state country company companies business market markets job jobs
+  law laws war health food water car cars phone computer internet web site page link account design art history science music
+  verified verification formal formally result results claim claims question answer answers idea ideas thing problem solution
+  tool open source service services platform app library framework engine agent agents assistant chat api cloud
+  network security privacy update upgrade build builds run runs show shows watch play player players fan fans
+  power week today tonight morning night video photo image post thread comment reply share link
+  government president minister official officials people public world global local national international
+  big small best worst first last next new old high low top free real true fake right left
+  ai`
+  .split(/\s+/).filter(Boolean).concat(['管理','分析','新聞','証明','研究','検証','問題','結果','発表','世界','ユーザー','データ','モデル','ツール','機能','開発','技術','企業','市場','政府','社会','日本人','流行','わかる','すごい','やばい','かわいい','ありがとう','おはよう','おめでとう']));
 export const isGenericTerm = (word) => GENERIC.has(String(word || '').normalize('NFKC').toLowerCase().trim());
 // Restrict promotional cheat/unauthorized distribution filtering to GitHub repository listings.
 // A legitimate security report mentioning an exploit is not a downloadable cheat release.
@@ -92,16 +107,17 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [] } = {
     if (ageH > 72) continue;
     const url = canonicalUrl(s.url);
     if (!url) continue;
-    const item = { title, category:cat.id, label:cat.label, base:cat.base, words:keywords(title), urlKey:url, source:s.src, url, ts, cves:cveIds(title), cautious:CAUTION.test(title) };
+    const link = s.link ? canonicalUrl(s.link) : '';
+    const item = { title, category:cat.id, label:cat.label, base:cat.base, words:keywords(title), urlKey:link || url, source:s.src, url, ts, cves:cveIds(title), cautious:CAUTION.test(title) };
     let group = groups.find((g) => sameEvent(g, item));
     if (!group) { group = { ...item, evidence:[], latest:ts }; groups.push(group); }
-    if (!group.evidence.some((e) => e.source === item.source && e.url === url)) group.evidence.push({ source:item.source, title, url, ts });
+    if (!group.evidence.some((e) => e.source === item.source && e.url === url)) group.evidence.push({ source:item.source, title, url, link:link || undefined, ts });
     group.latest = Math.max(group.latest, ts);
     group.cautious ||= item.cautious;
   }
   const events = groups.map((g) => {
     const nSources = new Set(g.evidence.map((e) => e.source)).size;
-    const nPublishers = new Set(g.evidence.map((e) => { try { return new URL(e.url).hostname.replace(/^www\./, ''); } catch { return ''; } })).size;
+    const nPublishers = new Set(g.evidence.map((e) => { try { return new URL(e.link || e.url).hostname.replace(/^www\./, ''); } catch { return ''; } })).size;
     const ageH = Math.max(0, (now - g.latest) / 3.6e6);
     const impact = Math.max(0, Math.min(100, Math.round(g.base + Math.min(8, (nSources - 1) * 4) + 5 * Math.exp(-ageH / 24) - (g.cautious ? 3 : 0))));
     const evidence=[], used = new Set();

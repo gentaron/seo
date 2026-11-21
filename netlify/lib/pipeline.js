@@ -11,15 +11,20 @@ import { SOURCES, SOURCE_MAP, sourceMeta } from './sources.js';
 import { mineCandidates } from './mine.js';
 import { scoreRun, RUN_INTERVAL_H } from './score.js';
 import { prepareSignals, buildWorldBrief } from './intelligence.js';
+import { groupStories } from './trend.js';
+import { buildClusters, trackThreads, publicCluster, linkTerms } from './cluster.js';
+import { buildThemes, buildWorldSummary, enrichEvents, coverageOf, METHOD } from './brief.js';
 
 export const KEYS = {
   latest: 'latest',
   lexicon: 'lexicon',
   meta: 'meta',
+  threads: 'threads',
   lock: 'lock',
 };
 
 const STREAM_LEN = 30;
+const TRENDS_LEN = 150;
 const HISTORY_LEN = 40;
 const LOCK_TTL_MS = 45_000;
 
@@ -74,27 +79,44 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
   await store.set(KEYS.lock, { at: lockAt, trigger });
 
   try {
-    const [reports, lexicon, meta] = await Promise.all([
+    const [reports, lexicon, meta, threads] = await Promise.all([
       collectSignals({ deadline }),
       store.get(KEYS.lexicon).then((v) => v || {}),
       store.get(KEYS.meta).then((v) => v || {}),
+      store.get(KEYS.threads).then((v) => v || {}),
     ]);
 
     const signals = reports.flatMap((r) => r.signals);
     // Preserve the raw streams for auditing; score only deduplicated, safe signals.
     const { clean: usableSignals, rejected } = prepareSignals(signals);
     const candidates = mineCandidates(usableSignals);
-    const { terms, lexicon: nextLexicon, considered } = scoreRun({
+    // 同じ記事・転載を 1 つの「ストーリー」にまとめる（投稿数の重複カウントを防ぐ）
+    const stories = groupStories(usableSignals);
+    const { terms, lexicon: nextLexicon, considered, droppedGeneric } = scoreRun({
       signals: usableSignals,
       candidates,
       sourceMap: SOURCE_MAP,
       lexicon,
       now,
+      stories,
     });
+
+    // 同一トレンドの統合 → 観測をまたいだ追跡（ID・動向・継続性）
+    const built = buildClusters({ terms, signals: usableSignals, stories, sourceMap: SOURCE_MAP, now });
+    const { clusters, threads: nextThreads, watch } = trackThreads(built, threads, { now, intervalH: RUN_INTERVAL_H });
+    linkTerms(terms, clusters);
+    const sourcesMeta = sourceMeta().map((m) => {
+      const r = reports.find((x) => x.id === m.id);
+      return { ...m, ok: !!r?.ok, count: r?.count ?? 0, ms: r?.ms ?? 0, error: r?.error };
+    });
+    const brief = buildWorldBrief(usableSignals, { now, rejected });
+    const analysis = { ...brief, events: enrichEvents(brief.events, { now }) };
+    const themes = buildThemes(clusters);
+    const summary = buildWorldSummary({ clusters, events: analysis.events, watch, themes, now });
 
     const snapshot = {
       ok: true,
-      v: 2,
+      v: 3,
       runId: new Date(now).toISOString(),
       generatedAt: now,
       nextRunAt: nextScheduled(now),
@@ -107,16 +129,25 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
         excludedSignals: rejected.length,
         candidates: candidates.size,
         considered,
+        terms: terms.length,
+        trends: clusters.length,
+        mergedTerms: terms.length - clusters.length,
+        droppedGeneric,
+        stories: new Set(stories).size,
         lexicon: Object.keys(nextLexicon).length,
         sourcesUp: reports.filter((r) => r.ok).length,
         sourcesTotal: reports.length,
       },
-      sources: sourceMeta().map((m) => {
-        const r = reports.find((x) => x.id === m.id);
-        return { ...m, ok: !!r?.ok, count: r?.count ?? 0, ms: r?.ms ?? 0, error: r?.error };
-      }),
+      sources: sourcesMeta,
+      // terms：語単位（大全・フィード・RSS 用、従来どおり）／trends：同じ話題を統合したトレンド単位
       terms,
-      analysis: buildWorldBrief(usableSignals, { now, rejected }),
+      trends: clusters.slice(0, TRENDS_LEN).map(publicCluster),
+      watch,
+      themes,
+      summary,
+      coverage: coverageOf(usableSignals, sourcesMeta),
+      method: METHOD,
+      analysis,
       streams: Object.fromEntries(
         reports
           .filter((r) => r.signals.length)
@@ -137,13 +168,14 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
     }
 
     const history = [
-      { at: now, top: terms.slice(0, 8).map((t) => t.t), up: snapshot.stats.sourcesUp },
+      { at: now, top: clusters.slice(0, 8).map((t) => t.t), up: snapshot.stats.sourcesUp },
       ...(meta.history ?? []),
     ].slice(0, HISTORY_LEN);
 
     await Promise.all([
       store.set(KEYS.latest, snapshot),
       store.set(KEYS.lexicon, nextLexicon),
+      store.set(KEYS.threads, nextThreads),
       store.set(KEYS.meta, { ...meta, lastRunAt: now, lastTrigger: trigger, runs: (meta.runs ?? 0) + 1, history }),
     ]);
     return snapshot;

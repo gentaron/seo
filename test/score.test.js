@@ -13,6 +13,8 @@ test('新語は new、伸びた語は surge、主流だけの語は減点', () =
     sig('misskey', 'ぱおん'),
     sig('bluesky', 'ぱおん'),
     sig('urbandictionary', 'clanker'),
+    sig('reddit', 'clanker', { url: 'https://reddit.com/r/a/1' }),
+    sig('bluesky', 'clanker', { url: 'https://bsky.app/x/1' }),
     sig('googletrends', 'Election', { mainstream: true }),
     sig('wikipedia', 'Election', { mainstream: true }),
   ];
@@ -21,6 +23,8 @@ test('新語は new、伸びた語は surge、主流だけの語は減点', () =
   const by = Object.fromEntries(terms.map((t) => [t.k, t]));
   assert.equal(by['ぱおん'].status, 'new');
   assert.ok(by.clanker.badges.includes('surge'));
+  assert.equal(by.clanker.dir, 'rising');
+  assert.equal(by['ぱおん'].dir, 'new');
   assert.ok(by.election.score < by['ぱおん'].score);
   assert.equal(next.clanker.runs, 6);
   assert.equal(terms[0].score, 100);

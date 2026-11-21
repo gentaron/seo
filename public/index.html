@@ -67,8 +67,8 @@
   <section class="panel" data-panel="board">
     <div class="board-head">
       <div>
-        <h1 class="h1">いま伸びているトレンド</h1>
-        <p class="mute" id="board-sub">検索しなくても、観測したトレンドを全部ここに並べます。</p>
+        <h1 class="h1">いま観測しているトレンド</h1>
+        <p class="mute" id="board-sub">検索しなくても、観測したトレンドを全部ここに並べます。同じ話題の語は 1 つにまとめています。</p>
       </div>
     </div>
     <div class="filters board-filters">
@@ -83,8 +83,21 @@
         <button data-v="48">過去48時間</button>
         <button class="is-on" data-v="">すべて</button>
       </div>
-      <select id="b-cat" aria-label="カテゴリ">
-        <option value="">すべてのカテゴリ</option>
+      <select id="b-topic" aria-label="分野（話題の内容）">
+        <option value="">すべての分野</option>
+        <option value="science">科学・研究</option>
+        <option value="ai">AI</option>
+        <option value="economy">経済・金融</option>
+        <option value="politics">政治・国際情勢</option>
+        <option value="security">安全保障</option>
+        <option value="society">社会</option>
+        <option value="technology">テクノロジー</option>
+        <option value="culture">文化・娯楽</option>
+        <option value="sports">スポーツ</option>
+        <option value="other">その他</option>
+      </select>
+      <select id="b-cat" aria-label="投稿元">
+        <option value="">すべての投稿元</option>
         <option value="sns">SNS</option>
         <option value="community">コミュニティ</option>
         <option value="slang">スラング・ミーム</option>
@@ -92,29 +105,69 @@
         <option value="tech">テック</option>
         <option value="mainstream">ニュース・一般</option>
       </select>
-      <select id="b-sort" aria-label="並び順">
-        <option value="score">注目度順（社会的影響度とは別）</option>
-        <option value="vel">伸び率順</option>
+      <select id="b-ver" aria-label="検証状態">
+        <option value="">すべての検証状態</option>
+        <option value="confirmed">確認済み</option>
+        <option value="investigating">調査中</option>
+        <option value="unverified">未検証</option>
+        <option value="disputed">誤情報の可能性</option>
+      </select>
+      <div class="seg" role="group" aria-label="並び順" id="b-sortseg">
+        <button class="is-on" data-v="attention">注目度順</button>
+        <button data-v="importance">重要度順</button>
+        <button data-v="rise">急上昇順</button>
+      </div>
+      <select id="b-sort" aria-label="その他の並び順">
+        <option value="">その他の並び順…</option>
         <option value="first">開始が新しい順</option>
+        <option value="duration">継続時間が長い順</option>
         <option value="spread">拡散範囲順</option>
+        <option value="posts">投稿数順</option>
       </select>
       <label class="toggle"><input type="checkbox" id="b-active"> 上昇中のみ</label>
     </div>
     <div class="board-wrap">
       <table class="board">
         <thead>
-          <tr><th class="c-rank">#</th><th>トレンド</th><th class="c-heat">注目度</th><th class="c-vel">伸び</th><th class="c-start">開始</th><th class="c-spark">推移（直近）</th><th class="c-src">出ている場所</th></tr>
+          <tr><th class="c-rank">#</th><th>トレンド</th><th class="c-heat" title="SNS・コミュニティでの盛り上がり（今回の観測内の相対値）">注目度</th><th class="c-imp" title="社会的な重要度（ルールベースの推定。注目度とは別の尺度）">重要度</th><th class="c-vel" title="NEW／上昇中／横ばい／下降中。マウスを乗せると判定の根拠を表示">動向</th><th class="c-start">開始・継続</th><th class="c-spark">推移（直近）</th><th class="c-src">出ている場所</th></tr>
         </thead>
         <tbody id="board"></tbody>
       </table>
     </div>
     <div class="empty" id="board-empty" hidden>条件に合うトレンドがありません。</div>
+    <p class="legend mute" id="board-legend"></p>
   </section>
 
   <!-- ============ 世界の情勢：トレンド熱量とは別尺度 ============ -->
   <section class="panel" data-panel="world" hidden>
     <h1 class="h1">世界の情勢 <small class="mute">ネットの熱量ではなく、変化の重要度を見る</small></h1>
-    <p class="world-intro">サイバー攻撃、社会インフラ、地政学、金融、政治制度などの公開見出しを整理します。重要度はルールベースの暫定推定で、<strong>複数媒体で言及されても事実確認済みとは限りません。</strong> 元の投稿・記事を必ず確認してください。</p>
+    <p class="world-intro">観測したトレンドとニュース見出しを統合し、本当に重要な出来事を絞り込みます。重要度はルールベースの暫定推定で、<strong>「確認済み」も複数の独立した情報源が言及していることを示すだけで、内容の最終確認ではありません。</strong> 元の投稿・記事を必ず確認してください。</p>
+    <p class="world-headline" id="world-headline"></p>
+    <div class="world-cols">
+      <section class="world-sec world-sec--main">
+        <h2>重要な変化 <small class="mute">何が起きたか／なぜ重要か／何が未確認か</small></h2>
+        <ol class="brief" id="brief-changes"></ol>
+      </section>
+      <aside class="world-side">
+        <section class="world-sec">
+          <h2>新たな兆候 <small class="mute">24時間以内に出現・上昇</small></h2>
+          <ul class="mini" id="brief-emerging"></ul>
+        </section>
+        <section class="world-sec">
+          <h2>継続監視すべき話題 <small class="mute">ランキングから消えても追跡</small></h2>
+          <ul class="mini" id="brief-watch"></ul>
+        </section>
+        <section class="world-sec">
+          <h2>分野別の傾向</h2>
+          <ul class="mini" id="brief-overview"></ul>
+        </section>
+      </aside>
+    </div>
+    <section class="world-sec">
+      <h2>関連する動き <small class="mute">複数の話題に共通する変化（同時に起きた＝因果関係ではありません）</small></h2>
+      <div class="themes" id="themes"></div>
+    </section>
+    <h2 class="world-subhead">見出し単位の観測</h2>
     <div class="world-controls">
       <select id="world-cat" aria-label="情勢の分野">
         <option value="">全分野</option>
@@ -252,8 +305,10 @@
   <section class="panel" data-panel="sources" hidden>
     <h1 class="h1">観測網 <small class="mute">すべて無料・API キー不要</small></h1>
     <div class="srcgrid" id="srcgrid"></div>
+    <section class="explain" id="coverage"></section>
+    <section class="explain" id="method"></section>
     <section class="explain">
-      <h2>スコアの読み方</h2>
+      <h2>語単位の指標（フィード・大全）</h2>
       <ul>
         <li><b>熱量</b> … 媒体の重み × 媒体内での反応の順位 × 新しさ × 媒体側の勢い。1 つの媒体で何度出ても頭打ちになります。</li>
         <li><b>拡散</b> … いくつの媒体にまたがっているか。3 媒体以上で 🌊。</li>
