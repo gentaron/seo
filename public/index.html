@@ -53,9 +53,9 @@
 
   <div class="tabbar">
     <nav class="tabs" role="tablist" aria-label="表示切り替え">
-      <button role="tab" class="tab" data-tab="board" aria-selected="true">トレンド</button>
-      <button role="tab" class="tab" data-tab="feed" aria-selected="false">フィード</button>
-      <button role="tab" class="tab" data-tab="world" aria-selected="false">世界の情勢</button>
+      <button role="tab" class="tab" data-tab="world" aria-selected="true">重要情報レーダー</button>
+      <button role="tab" class="tab" data-tab="board" aria-selected="false">SNSトレンド</button>
+      <button role="tab" class="tab" data-tab="feed" aria-selected="false">潮流フィード</button>
       <button role="tab" class="tab" data-tab="lexicon" aria-selected="false">スラング大全</button>
       <button role="tab" class="tab" data-tab="notes" aria-selected="false">ネタ帳 <span class="count" id="notes-count">0</span></button>
       <button role="tab" class="tab" data-tab="raw" aria-selected="false">生データ</button>
@@ -69,7 +69,7 @@
 
 <main id="main" class="wrap">
   <!-- ============ トレンド一覧（Google トレンド風・検索不要） ============ -->
-  <section class="panel" data-panel="board">
+  <section class="panel" data-panel="board" hidden>
     <div class="board-head">
       <div>
         <p class="eyebrow">NICHE TRENDS</p>
@@ -118,11 +118,11 @@
   </section>
 
   <!-- ============ 世界の情勢：トレンド熱量とは別尺度 ============ -->
-  <section class="panel" data-panel="world" hidden>
-    <p class="eyebrow">WORLD</p>
-    <h1 class="h1">世界の情勢</h1>
-    <p class="lede">ネットの熱量ではなく、変化の重要度で見る。</p>
-    <p class="world-intro">サイバー攻撃、社会インフラ、地政学、金融、政治制度などの公開見出しを整理します。重要度はルールベースの暫定推定で、<strong>複数媒体で言及されても事実確認済みとは限りません。</strong> 元の投稿・記事を必ず確認してください。</p>
+  <section class="panel" data-panel="world">
+    <p class="eyebrow">RADAR</p>
+    <h1 class="h1">重要情報レーダー</h1>
+    <p class="lede">まだ注目されていない、重大な変化を優先して並べます。</p>
+    <p class="world-intro">高影響・低注目の事象を優先し、研究・公的情報も直接観測します。注目度未計測は低注目とは区別します。重要度はルールベースの暫定推定で、<strong>複数媒体で言及されても事実確認済みとは限りません。</strong> 元の投稿・記事を必ず確認してください。</p>
     <div class="world-controls">
       <select id="world-cat" aria-label="情勢の分野">
         <option value="">全分野</option>

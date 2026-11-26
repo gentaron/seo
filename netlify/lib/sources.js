@@ -475,7 +475,24 @@ async function lemmy(ctx) {
  *   weight: 語のスコアに効く媒体の重み（ニッチ寄り・スラング寄りほど高い）
  *   lang  : 主な言語（UI のフィルタ既定値。語ごとの判定は別途行う）
  * =================================================================== */
+// Dedicated discovery feeds are chronological, not ranked by social reactions.
+function worldFeed(url, context) {
+  return async (ctx) => {
+    const xml = await getText(url, ctx);
+    const items = parseFeed(xml);
+    if (!items.length) throw new Error('empty feed');
+    return items.filter((i) => i.title && i.link && parseDate(i.date)).slice(0, 50).map((i) => ({
+      kind: 'post', text: i.title, url: i.link, score: 0, ts: parseDate(i.date), ctx: context,
+    }));
+  };
+}
 export const SOURCES = [
+  { id:'world_arxiv_math', label:'arXiv 数論', icon:'📄', lang:'en', genre:'tech', weight:0, fetch:worldFeed('https://rss.arxiv.org/rss/math.NT','研究プレプリント・未査読') },
+  { id:'world_arxiv_physics', label:'arXiv 数理物理', icon:'📄', lang:'en', genre:'tech', weight:0, fetch:worldFeed('https://rss.arxiv.org/rss/math-ph','研究プレプリント・未査読') },
+  { id:'world_arxiv_ai', label:'arXiv AI', icon:'📄', lang:'en', genre:'tech', weight:0, fetch:worldFeed('https://rss.arxiv.org/rss/cs.AI','研究プレプリント・未査読') },
+  { id:'world_nasa', label:'NASA News', icon:'🛰', lang:'en', genre:'tech', weight:0, fetch:worldFeed('https://www.nasa.gov/news-release/feed/','NASA公式発表') },
+  { id:'world_fed', label:'Federal Reserve', icon:'🏦', lang:'en', genre:'mainstream', weight:0, fetch:worldFeed('https://www.federalreserve.gov/feeds/press_all.xml','米連邦準備制度公式発表') },
+  { id:'world_cisa', label:'CISA Advisories', icon:'🛡', lang:'en', genre:'tech', weight:0, fetch:worldFeed('https://www.cisa.gov/cybersecurity-advisories/all.xml','CISA公式情報') },
   { id: 'bluesky', label: 'Bluesky', icon: '🦋', lang: 'en', genre: 'sns', weight: 1.0, fetch: bluesky },
   { id: 'mastodon', label: 'Mastodon', icon: '🐘', lang: 'mix', genre: 'sns', weight: 0.85, fetch: mastodon },
   { id: 'misskey', label: 'Misskey', icon: '🥑', lang: 'ja', genre: 'sns', weight: 1.0, fetch: misskey },
