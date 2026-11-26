@@ -42,6 +42,12 @@ async function writeSitemap() {
     <changefreq>hourly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>${SITE_URL}/ai/</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>
 </urlset>
 `.replace('www.sitemap.org', 'www.sitemaps.org');
   await writeFile(join(root, 'public/sitemap.xml'), xml, 'utf8');
@@ -55,9 +61,11 @@ async function writeRobots() {
 /** ブラウザ用スクリプトは import できない（document 参照）ので構文だけ検査する */
 async function checkBrowserSyntax() {
   const { execFileSync } = await import('node:child_process');
-  const file = join(root, 'public/assets/app.js');
-  execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' });
+  for (const f of ['public/assets/app.js', 'public/assets/ai.js', 'public/assets/ai-theme.js']) {
+    execFileSync(process.execPath, ['--check', join(root, f)], { stdio: 'inherit' });
+  }
   await readFile(join(root, 'public/index.html'), 'utf8');
+  await readFile(join(root, 'public/ai/index.html'), 'utf8');
 }
 
 async function writeBuildInfo() {

@@ -150,3 +150,41 @@ MIT
 - 追加 API キーや LLM は不要です。
 
 制約：既存の観測対象は独立した報道機関や公的な一次資料の照合網ではないため、自動的な真偽判定、誤報の訂正追跡、世界の全ニュースの網羅はできません。意味の近い別事件が同一グループとしてまとまる可能性もあります。分析はあくまで手がかりで、元情報を確認してください。
+
+---
+
+## 10. AI Pulse（`/ai/`）— いま本当に流行っている AI
+
+トップのナビ右端の **✦ AI Pulse** から開く、AI・テック専用のトレンドページです。毎時 20 分に自動観測します（`netlify/functions/ai-collect.mjs`）。
+
+### 観測網（19 媒体・約 45 フィード、すべて無料・キー不要）
+
+| 層 | 媒体 |
+| --- | --- |
+| コミュニティ | Hacker News（48h 人気＋AI 語の横断検索 8 本）／Reddit（AI 系 16 サブレの今日のトップ＋hot）／Lobsters／DEV／Mastodon／Bluesky |
+| コード | GitHub（直近 7 日・2 日に作られて星を集めるリポジトリ、1 日あたりの星） |
+| モデル | Hugging Face トレンドモデル・Spaces |
+| 研究 | Hugging Face Daily Papers |
+| 報道 | Google News（米・英・印）＋ TechCrunch／The Verge／Ars Technica／VentureBeat／MIT Tech Review／WIRED／The Decoder／MarkTechPost／ITmedia AI+ |
+| 日本 | Google News 日本／はてブ テクノロジー／Zenn／Qiita |
+| プロダクト | Product Hunt |
+| 検索・関心 | Wikipedia 閲覧数（en/ja 上位 1000）／Google トレンド（米・日・英・印） |
+
+### 選び方（`netlify/lib/ai/engine.js`）
+
+1. **そろえる**：媒体ごとに単位が違う反応量を媒体内パーセンタイルへ。HN・Reddit は経過時間あたりの票、GitHub は 1 日あたりの星で “速度” も評価。媒体ごとの半減期で新しさを減衰
+2. **名寄せ**（`lexicon.js`）：「Claude Opus 4.5」「GPT-5.1 Codex」「DeepSeek-V3.2」「Qwen3-VL」など版つきの名前を 20 の “家族” 正規表現で正規化。企業・製品・概念 100 余の辞書（日本語表記込み、Cursor／Grok などの一般語は AI 文脈でのみ照合）。長い一致の内側の短い一致は数えない
+3. **成果物の動的照合**：HF のモデル名・GitHub のリポジトリ名・論文名（「名前: 副題」）を正規化し、別媒体の見出しに出たら同じものとして束ねる（AI の語を含まない見出しでも拾える）
+4. **新語の発見**：辞書に無い固有名詞（CamelCase・型番・引用）が 2 層以上・3 シグナル以上・1/3 以上 AI 文脈で出たら「新出」として昇格
+5. **重ねる**：同じ層の中は noisy-OR で頭打ち、層をまたぐほど超加法的に加点。過去の観測の EWMA 平均・分散からの z 値（勢い）、証拠の数によるベイズ的縮小、傘の語（OpenAI・生成AI など）の割り引き
+
+状態：急浮上（36 時間以内に初観測・複数層）／急騰（z ≥ 1.5）／上昇（z ≥ 0.5）／定着／失速（z ≤ −0.8）。
+
+### API
+
+| エンドポイント | 内容 |
+| --- | --- |
+| `GET /api/ai?cat=model\|agent\|product\|opensource\|research\|infra\|company\|concept\|emerging&limit=` | 上位 60・テーマ・観測網の状態（根拠リンク・層ごとの熱量・推移つき） |
+| `POST /api/ai-refresh` | 手動で観測（クールダウン 10 分） |
+
+保存先は既存と同じ Blobs ストアの `ai-latest`／`ai-ledger`（既存のキーとは独立）。`npm run serve:mock` では AI Pulse も 18 回分の疑似観測が入った状態で起動します。

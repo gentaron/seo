@@ -498,3 +498,6 @@ export const SOURCE_MAP = Object.fromEntries(SOURCES.map((s) => [s.id, s]));
 export function sourceMeta() {
   return SOURCES.map(({ id, label, icon, lang, genre, weight }) => ({ id, label, icon, lang, genre, weight }));
 }
+
+/** AI Pulse（netlify/lib/ai/sources.js）と取得の作法を共有するための公開 */
+export { get as fetchWithBudget, getJson, getText, firstOk, BOT_UA, BROWSER_UA };

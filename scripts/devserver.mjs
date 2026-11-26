@@ -39,12 +39,16 @@ if (MOCK) {
   const { makeMockFetch, seedHistory } = await import('./mock-web.mjs');
   const { memoryStore } = await import('../netlify/lib/store.js');
   const { runPipeline } = await import('../netlify/lib/pipeline.js');
+  const { wrapAiMockFetch, seedAiHistory } = await import('./mock-ai.mjs');
+  const { runAiPipeline } = await import('../netlify/lib/ai/pipeline.js');
   const base = Date.now();
-  globalThis.fetch = makeMockFetch({ base });
+  globalThis.fetch = wrapAiMockFetch(makeMockFetch({ base }), { base });
   globalThis.__UNDERCURRENT_STORE__ = memoryStore();
   // 過去 24 時間ぶん（3 時間おき × 8 回）観測した状態を作っておく
   await seedHistory({ runPipeline, store: globalThis.__UNDERCURRENT_STORE__, base, runs: 8 });
-  console.log('[devserver] モックモード: 外部APIには接続しません（疑似観測 8 回分を投入済み）');
+  // AI Pulse は毎時 × 18 回
+  await seedAiHistory({ runAiPipeline, store: globalThis.__UNDERCURRENT_STORE__, base, runs: 18 });
+  console.log('[devserver] モックモード: 外部APIには接続しません（疑似観測 8 回分＋AI Pulse 18 回分を投入済み）');
 }
 
 /* ---------- Functions 橋渡し ---------- */

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Pulse｜いま本当に流行っている AI</title>
+<meta name="description" content="Hacker News・Reddit・GitHub・Hugging Face・世界の報道・はてブ・Zenn・Wikipedia など 19 の情報源を毎時巡回。開発者・研究者・報道・一般の関心が同時に動いた AI だけをランキングします。">
+<meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AI Pulse｜いま本当に流行っている AI">
+<meta property="og:description" content="世界 19 の情報源から、いま本当に熱い AI を毎時選ぶ。">
+<meta property="og:image" content="/assets/ogp.svg">
+<meta property="og:locale" content="ja_JP">
+<link rel="icon" href="/icons/eureka/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/icons/eureka/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/assets/ai.css">
+<script src="/assets/ai-theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">本文へスキップ</a>
+
+<nav class="gnav" aria-label="グローバル">
+  <div class="gnav__in">
+    <a class="gnav__back" href="/"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Undercurrent</a>
+    <a class="gnav__brand" href="/ai/" aria-label="AI Pulse トップ">
+      <span class="gnav__mark" aria-hidden="true"></span>AI Pulse
+    </a>
+    <div class="gnav__act">
+      <span class="live" id="live" aria-live="polite"><span class="live__dot" aria-hidden="true"></span><span id="live-text">読み込み中</span></span>
+      <button class="ibtn" id="refresh" type="button" aria-label="今すぐ観測" title="今すぐ観測（10分クールダウン）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="ibtn" id="theme" type="button" aria-label="配色を切り替え" title="配色を切り替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+  <!-- ===== Hero ===== -->
+  <header class="hero">
+    <p class="eyebrow" data-reveal>AI PULSE</p>
+    <h1 class="hero__title" data-reveal>いま、AIで<br>本当に流行っているもの。</h1>
+    <p class="hero__lede" data-reveal>世界 19 の情報源・約 45 のフィードを毎時巡回。<br class="pc">開発者、研究者、報道、そして一般の関心が<em>同時に</em>動いたものだけを選びます。</p>
+    <dl class="kpis" data-reveal>
+      <div><dt>観測したシグナル</dt><dd><span data-count id="k-signals">—</span></dd></div>
+      <div><dt>稼働中の情報源</dt><dd><span data-count id="k-sources">—</span><small id="k-sources-total"></small></dd></div>
+      <div><dt>報道した媒体</dt><dd><span data-count id="k-pubs">—</span></dd></div>
+      <div><dt>次の観測まで</dt><dd><span id="k-next">—</span></dd></div>
+    </dl>
+  </header>
+
+  <!-- ===== No.1 ===== -->
+  <section class="wrap" aria-labelledby="spot-h">
+    <h2 class="vh" id="spot-h">いちばん熱いトピック</h2>
+    <article class="spot" id="spot" data-reveal>
+      <div class="spot__skeleton"><span></span><span></span><span></span></div>
+    </article>
+  </section>
+
+  <!-- ===== Breakouts ===== -->
+  <section class="wrap sec" aria-labelledby="rise-h" id="rise-sec" hidden>
+    <div class="sec__head" data-reveal>
+      <h2 class="sec__title" id="rise-h">急浮上</h2>
+      <p class="sec__sub">突然あらわれた、または過去の水準から跳ね上がったもの。</p>
+    </div>
+    <div class="rail" id="rise" role="list"></div>
+  </section>
+
+  <!-- ===== Ranking ===== -->
+  <section class="wrap sec" aria-labelledby="rank-h">
+    <div class="sec__head" data-reveal>
+      <h2 class="sec__title" id="rank-h">ランキング</h2>
+      <p class="sec__sub">Hype はその回の首位を 100 とした相対値。下の小さな 8 つの点は、話題になっている “層” です。</p>
+    </div>
+    <div class="ctl" data-reveal>
+      <div class="segs" role="tablist" aria-label="カテゴリ" id="cats">
+        <button role="tab" aria-selected="true" data-cat="">すべて</button>
+        <button role="tab" aria-selected="false" data-cat="model">モデル</button>
+        <button role="tab" aria-selected="false" data-cat="agent">エージェント・開発</button>
+        <button role="tab" aria-selected="false" data-cat="product">プロダクト</button>
+        <button role="tab" aria-selected="false" data-cat="opensource">オープンソース</button>
+        <button role="tab" aria-selected="false" data-cat="research">研究</button>
+        <button role="tab" aria-selected="false" data-cat="infra">インフラ</button>
+        <button role="tab" aria-selected="false" data-cat="company">企業</button>
+        <button role="tab" aria-selected="false" data-cat="concept">概念・手法</button>
+        <button role="tab" aria-selected="false" data-cat="emerging">新出</button>
+      </div>
+      <label class="switch"><input type="checkbox" id="only-up"><span class="switch__ui" aria-hidden="true"></span>上昇中のみ</label>
+    </div>
+    <ol class="rank" id="rank" aria-live="polite"></ol>
+    <p class="empty" id="rank-empty" hidden>この条件のトピックは、いまの観測にはありません。</p>
+    <div class="more"><button class="pill" id="more" type="button" hidden>もっと見る</button></div>
+    <div class="legend" id="legend" aria-label="層の凡例"></div>
+  </section>
+
+  <!-- ===== Themes ===== -->
+  <section class="wrap sec" aria-labelledby="theme-h">
+    <div class="sec__head" data-reveal>
+      <h2 class="sec__title" id="theme-h">いま動いているテーマ</h2>
+      <p class="sec__sub">個々の名前ではなく、話題の “流れ” で見る。</p>
+    </div>
+    <div class="bento" id="themes"></div>
+  </section>
+
+  <!-- ===== How ===== -->
+  <section class="wrap sec how" aria-labelledby="how-h">
+    <div class="sec__head" data-reveal>
+      <h2 class="sec__title" id="how-h">どうやって選んでいるか</h2>
+      <p class="sec__sub">本物の流行は “1 か所で大きい” ではなく、“性質の違う場所で同時に起きている”。</p>
+    </div>
+    <ol class="steps" data-reveal>
+      <li><b>01</b><h3>集める</h3><p>HN・Reddit の AI 16 サブレ・GitHub・Hugging Face・論文・世界と日本の報道・はてブ・Zenn・Qiita・Product Hunt・Wikipedia・Google トレンドまで、19 の情報源を毎時並列で取得。</p></li>
+      <li><b>02</b><h3>そろえる</h3><p>スコアの単位が違う媒体を、媒体内の順位（パーセンタイル）に変換。HN は経過時間あたりの票、GitHub は 1 日あたりの星で “速度” も見ます。</p></li>
+      <li><b>03</b><h3>名寄せする</h3><p>「Claude Opus 4.5」「GPT-5.1」のような版つきの名前を自動で正規化。HF のモデル名や GitHub のリポジトリ名が別の場所の見出しに出たら同じものとして束ね、辞書に無い新しい名前も検出します。</p></li>
+      <li><b>04</b><h3>重ねる</h3><p>同じ層の中では頭打ち、層をまたぐほど加点。さらに過去の平均からの跳ね上がり（z 値）と、証拠の数で補正します。</p></li>
+    </ol>
+    <div class="formula" data-reveal>
+      <span>Hype</span><i>=</i><span>Σ 層の熱量</span><i>×</i><span>層の広がり</span><i>×</i><span>勢い</span><i>×</i><span>証拠の量</span>
+    </div>
+    <div class="net" id="net" data-reveal></div>
+  </section>
+</main>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sh-title">
+  <div class="sheet__panel">
+    <div class="sheet__grab" aria-hidden="true"></div>
+    <button class="ibtn sheet__close" id="sh-close" type="button" aria-label="閉じる">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="sheet__body" id="sh-body"></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>AI Pulse は Undercurrent の一部です。各媒体の公開情報から自動で推定した “話題度” であり、品質・真偽・投資判断の材料ではありません。</p>
+    <p class="foot__links"><a href="/">Undercurrent（ネットの潮流）</a><a href="/api/ai" target="_blank" rel="noopener">API（JSON）</a></p>
+  </div>
+</footer>
+
+<script type="module" src="/assets/ai.js"></script>
+</body>
+</html>
