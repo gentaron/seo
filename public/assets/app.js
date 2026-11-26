@@ -28,7 +28,7 @@ const state = {
   lang: '',
   q: '',
   hideMain: true,
-  tab: 'board',
+  tab: 'world',
   board: { region: '', window: '', cat: '', sort: 'score', active: false },
   lex: { q: '', stage: '', lang: '', sort: 'recent', page: 1 },
   pendingSnap: null,
@@ -222,10 +222,11 @@ function renderWorld() {
   const category = $('#world-cat').value;
   const events = (analysis.events || []).filter((e) => !category || e.category === category);
   const st = analysis.stats || {};
-  summary.textContent = events.length + ' 件 · ' + (st.reviewed || 0) + ' 件の観測を分析 · 不審な配布宣伝 ' + (st.flagged || 0) + ' 件を除外 · 重複 ' + (st.duplicates || 0) + ' 件を整理';
+  summary.textContent = events.length + ' 件 · ' + (st.reviewed || 0) + ' 件の観測を分析 · 不審な配布宣伝 ' + (st.flagged || 0) + ' 件を除外 · 重複 ' + (st.duplicates || 0) + ' 件を整理' + (analysis.version >= 2 ? ' · 低価値候補 ' + (st.lowValueExcluded || 0) + ' 件を除外 · 低注目・高影響 ' + (st.hidden || 0) + ' 件' : ' · 次回観測で新方式に更新');
   root.innerHTML = events.map((e) => [
     '<article class="world-event">',
     '<div class="world-event__top"><span class="world-event__cat">', esc(e.categoryLabel), '</span><span class="world-event__impact">推定影響度 ', esc(e.impact), '/100</span></div>',
+    '<p class="world-event__meta">', esc(e.priorityBand === 'hidden' ? '低注目・高影響' : e.priorityBand === 'unknown-attention' ? '注目度未計測・高影響' : e.priorityBand === 'major' ? '高影響' : '旧形式'), ' · 注目度 ', esc(e.attention == null ? '未計測' : e.attention + '/100'), '</p>',
     '<h2>', esc(e.title), '</h2>',
     '<p class="world-event__meta">', ago(e.at), ' · ', esc(e.status), ' · ', esc(e.sourceCount), '媒体で観測</p>',
     '<p class="world-event__caution">', esc(e.caution), '</p>',
@@ -302,11 +303,11 @@ function renderFeed() {
 }
 
 function renderTicker() {
-  const top = (state.snap?.terms ?? []).filter((t) => !t.main).slice(0, 24);
-  const html = top
-    .map((t) => `<button class="ticker__item" tabindex="-1" data-open="${esc(t.k)}">${STATUS[t.status]?.icon ?? ''} <b>${esc(t.t)}</b><i>${t.vel > 0 ? '+' : ''}${Math.round(t.vel * 100)}%</i></button>`)
-    .join('');
-  $('#ticker').innerHTML = html + html; // 2 周分並べて継ぎ目なくループ
+  const root = $('#ticker');
+  const events = (state.snap?.analysis?.events ?? []).filter((e) => e.priorityBand === 'hidden' || e.priorityBand === 'unknown-attention' || e.priorityBand === 'major').slice(0, 8);
+  root.parentElement.hidden = events.length === 0;
+  const html = events.map((e) => '<a class="ticker__item" tabindex="-1" href="' + esc(safeWorldUrl(e.evidence?.[0]?.url)) + '" target="_blank" rel="noopener noreferrer nofollow"><b>' + esc(e.title) + '</b><i>影響 ' + esc(e.impact) + '</i></a>').join('');
+  root.innerHTML = html + html;
 }
 
 function renderSide() {
@@ -588,7 +589,7 @@ function showTab(tab) {
   state.tab = tab;
   $$('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   $$('.panel').forEach((p) => (p.hidden = p.dataset.panel !== tab));
-  setParam('tab', tab === 'board' ? '' : tab);
+  setParam('tab', tab === 'world' ? '' : tab);
   if (tab === 'world') renderWorld();
   if (tab === 'lexicon') loadLexicon();
   if (tab === 'raw') renderRaw();
@@ -709,6 +710,7 @@ async function boot() {
   const params = new URL(location.href).searchParams;
   const tab = params.get('tab');
   if (tab && $(`.tab[data-tab="${CSS.escape(tab)}"]`)) showTab(tab);
+  else showTab('world');
   await loadFeed();
   const term = params.get('term');
   if (term) openTerm(term, { push: false });

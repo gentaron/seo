@@ -89,6 +89,14 @@ export function makeMockFetch({ base = Date.now() } = {}) {
         'application/rss+xml',
       );
 
+    // Synthetic chronological discovery feeds; never used in production.
+    if (u === 'https://rss.arxiv.org/rss/math.NT') return rss([{ title:'Mock formal proof of a Riemann hypothesis variant', link:'https://example.test/math' }]);
+    if (u === 'https://rss.arxiv.org/rss/math-ph') return rss([{ title:'Mock first direct detection in a mathematical physics experiment', link:'https://example.test/physics' }]);
+    if (u === 'https://rss.arxiv.org/rss/cs.AI') return rss([{ title:'Mock routine document classification model', link:'https://example.test/ai' }]);
+    if (u === 'https://www.nasa.gov/news-release/feed/') return rss([{ title:'Mock asteroid impact crater research breakthrough', link:'https://example.test/nasa' }]);
+    if (u === 'https://www.federalreserve.gov/feeds/press_all.xml') return rss([{ title:'Mock FOMC statement on interest rates', link:'https://example.test/fed' }]);
+    if (u === 'https://www.cisa.gov/cybersecurity-advisories/all.xml') return rss([{ title:'Mock critical vulnerability actively exploited', link:'https://example.test/cisa' }]);
+
     if (u.includes('bsky.app')) {
       if (u.includes('getTrends'))
         return ok({

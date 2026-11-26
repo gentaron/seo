@@ -83,9 +83,11 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
     const signals = reports.flatMap((r) => r.signals);
     // Preserve the raw streams for auditing; score only deduplicated, safe signals.
     const { clean: usableSignals, rejected } = prepareSignals(signals);
-    const candidates = mineCandidates(usableSignals);
+    // Keep chronological evidence out of the social popularity denominator.
+    const trendSignals = usableSignals.filter((s) => !s.src.startsWith('world_'));
+    const candidates = mineCandidates(trendSignals);
     const { terms, lexicon: nextLexicon, considered } = scoreRun({
-      signals: usableSignals,
+      signals: trendSignals,
       candidates,
       sourceMap: SOURCE_MAP,
       lexicon,
@@ -116,7 +118,7 @@ export async function runPipeline({ store, budgetMs = 22_000, trigger = 'schedul
         return { ...m, ok: !!r?.ok, count: r?.count ?? 0, ms: r?.ms ?? 0, error: r?.error };
       }),
       terms,
-      analysis: buildWorldBrief(usableSignals, { now, rejected }),
+      analysis: buildWorldBrief(usableSignals, { now, rejected, terms }),
       streams: Object.fromEntries(
         reports
           .filter((r) => r.signals.length)

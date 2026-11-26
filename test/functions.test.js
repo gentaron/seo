@@ -29,7 +29,13 @@ test('feed：スナップショットが無ければ初回観測して返す', a
   assert.ok(body.terms.length > 5);
   assert.equal(body.v, 2);
   assert.ok(Array.isArray(body.analysis.events));
-  assert.equal(body.stats.sourcesUp, 14);
+  assert.equal(body.stats.sourcesUp, 20);
+  assert.equal(body.stats.sourcesTotal, 20);
+  assert.equal(body.analysis.version, 2);
+  assert.ok(body.analysis.events.some(e => e.evidence.some(s => s.source === 'world_cisa')));
+  assert.ok(body.analysis.events.some(e => e.evidence.some(s => s.source === 'world_arxiv_math')));
+  assert.ok(body.analysis.events.filter(e => e.evidence.every(s => s.source.startsWith('world_'))).every(e => e.attention === null));
+  assert.ok(body.terms.every(t => t.srcs.every(s => !s.startsWith('world_'))));
 });
 
 test('観測を重ねると推移と大全ができる', async () => {
