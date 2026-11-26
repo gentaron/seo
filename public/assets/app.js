@@ -589,6 +589,10 @@ function showTab(tab) {
   state.tab = tab;
   $$('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   $$('.panel').forEach((p) => (p.hidden = p.dataset.panel !== tab));
+  // モバイル：「その他」に入っている画面を開いている時は「その他」を選択中に
+  $('#m-more')?.classList.toggle('is-on', ['lexicon', 'notes', 'raw', 'sources'].includes(tab));
+  if ($('#more-sheet')?.open) $('#more-sheet').close();
+  if (document.readyState === 'complete' && matchMedia('(max-width: 760px)').matches) window.scrollTo({ top: 0 });
   setParam('tab', tab === 'world' ? '' : tab);
   if (tab === 'world') renderWorld();
   if (tab === 'lexicon') loadLexicon();
@@ -636,6 +640,12 @@ function bind() {
   });
 
   $$('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  const more = $('#more-sheet');
+  $('#m-more')?.addEventListener('click', () => more.showModal());
+  $('#more-close')?.addEventListener('click', () => more.close());
+  more?.addEventListener('click', (e) => {
+    if (e.target === more) more.close();
+  });
   $('#status-chips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-status]');
     if (!b) return;

@@ -101,3 +101,28 @@ test('AI 観測も同時実行ロックを尊重する', async () => {
   const isolated = memoryStore({ 'ai-lock': { at: Date.now() } });
   assert.deepEqual(await runAiPipeline({ store: isolated, budgetMs: 1000 }), { skipped: true, reason: 'locked' });
 });
+
+test('describe：キーワードに「これは何」「なぜいま」が付く', async () => {
+  const body = await (await ai(req('/api/ai'))).json();
+  for (const t of body.top.slice(0, 15)) {
+    assert.ok(t.about && t.about.length > 8, `about missing: ${t.name}`);
+    assert.ok(t.why && /話題/.test(t.why), `why missing: ${t.name}`);
+    assert.ok(t.angle, `angle missing: ${t.name}`);
+  }
+  const opus = body.top.find((t) => t.name === 'Claude Opus 4.5');
+  assert.match(opus.about, /Anthropic/);
+});
+
+test('export：両システムの全情報を Markdown で返す', async () => {
+  const { default: exp } = await import('../netlify/functions/export.mjs');
+  const { runPipeline } = await import('../netlify/lib/pipeline.js');
+  await runPipeline({ store, budgetMs: 5000, trigger: 'schedule' });
+  const j = await (await exp(req('/api/export'))).json();
+  assert.deepEqual(j.sections.map((s) => s.id), ['ai', 'trends', 'world', 'lexicon', 'history', 'raw', 'sources']);
+  assert.match(j.all, /# Undercurrent × AI Pulse 全データ/);
+  assert.match(j.all, /これは何: /);
+  assert.match(j.all, /\| 語 \| 言語 \|/);
+  const md = await exp(req('/api/export?format=md'));
+  assert.match(md.headers.get('content-type'), /markdown/);
+  assert.equal((await md.text()).length, j.all.length);
+});

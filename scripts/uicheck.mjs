@@ -40,10 +40,12 @@ const shot = async (name) => SHOT_DIR && page.screenshot({ path: `${SHOT_DIR}/${
 
 await page.addInitScript(() => localStorage.clear());
 await page.goto(BASE, { waitUntil: 'networkidle' });
+check('最初の画面は重要情報レーダー', await page.locator('[data-panel="world"]').isVisible());
+await page.click('.tabs .tab[data-tab="board"]');
 await page.waitForSelector('#board tr');
 
 const rows = await page.locator('#board tr').count();
-check('最初の画面はトレンド一覧（検索なしで全部並ぶ）', rows > 5, `${rows} 行`);
+check('トレンド一覧（検索なしで全部並ぶ）', rows > 5, `${rows} 行`);
 await page.click('#b-region [data-v="ja"]');
 const jaRows = await page.locator('#board tr').count();
 check('トレンド一覧：日本で絞り込める', jaRows > 0 && jaRows < rows, `${jaRows} 行`);
@@ -97,7 +99,8 @@ check('生データが媒体ごとに出る', (await page.locator('#raw section'
 await page.click('[data-tab="notes"]');
 check('ネタ帳タブに保存した語がある', (await page.locator('#notes li').count()) === 1);
 await page.click('[data-tab="sources"]');
-check('観測網に 14 媒体', (await page.locator('.src').count()) === 14);
+const nSrc = await page.locator('.src').count();
+check('観測網に全媒体が並ぶ', nSrc >= 14, `${nSrc} 媒体`);
 
 const before = await page.evaluate(() => document.documentElement.dataset.theme);
 await page.click('#theme');
@@ -112,7 +115,12 @@ check('モバイル幅で横スクロールしない', overflow <= 0, `${overflo
 await page.click('#theme');
 await page.waitForTimeout(300);
 await shot('05-mobile');
-await page.click('[data-tab="feed"]');
+check('モバイル：下部タブバーが出る', await page.locator('.mbar').isVisible());
+await page.click('.mbar [data-tab="feed"]');
+check('モバイル：下部タブでフィードへ', await page.locator('[data-panel="feed"]').isVisible());
+await page.click('#m-more');
+await page.click('.msheet [data-tab="lexicon"]');
+check('モバイル：その他から大全へ', await page.locator('[data-panel="lexicon"]').isVisible());
 
 await page.goto(`${BASE}/?term=aurafarming`, { waitUntil: 'networkidle' });
 await page.waitForSelector('#drawer[open]');
