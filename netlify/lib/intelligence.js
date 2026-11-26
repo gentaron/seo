@@ -42,13 +42,22 @@ export function prepareSignals(signals = []) {
 // Scores represent a transparent editorial priority heuristic, not verified
 // risk, truthfulness, actual magnitude or a forecast of market moves.
 const CATEGORIES = [
-  { id:'security', label:'サイバー・セキュリティ', base:89, re:/(?:CVE-\d{4}-\d+|java4shell|vulnerabilit|malware|ransomware|\bRCE\b|cyber.?attack|data breach|security flaw|情報漏洩|脆弱性|不正アクセス|サイバー攻撃)/i },
+  { id:'security', label:'サイバー・セキュリティ', base:89, re:/(?:CVE-\d{4}-\d+|java4shell|vulnerabilit|malware|ransomware|\bRCE\b|cyber.?attack|data breach|security flaw|情報漏[え洩]い?|情報流出|脆弱性|不正アクセス|サイバー攻撃)/i },
   { id:'infrastructure', label:'社会インフラ', base:82, re:/(?:services? down|outage|flight stoppage|blackout|power failure|system outage|network disruption|インフラ障害|大規模障害|停電|運航停止)/i },
   { id:'geopolitics', label:'地政学・安全保障', base:80, re:/(?:ukrain|russia|crimea|kerch|military strike|missile|invasion|ceasefire|geopolitic|warfare|侵攻|軍事|停戦|戦争|台湾有事|クリミア|ウクライナ)/i },
-  { id:'markets', label:'経済・金融', base:75, re:/(?:earnings|IPO|financial results|revenue forecast|stocks? (?:slide|plunge|surge)|inflation|interest rate|data center investment|決算|株式市場|上場|株価|金融市場|物価上昇)/i },
-  { id:'policy', label:'政治・制度', base:66, re:/(?:regulat|court ruling|lawsuit|\bbans?\b|\bbanned\b|\bnominee\b|\bFDA\b|\bFAA\b|congress|senate|ballot measure|政府|法案|規制|指名撤回|禁止|裁判所|議会)/i },
-  { id:'technology', label:'科学・テクノロジー', base:58, re:/(?:research breakthrough|clinical trial|new semiconductor|quantum computer|new ai model|autonomous vehicle|self.driving|新技術|研究成果|量子コンピュータ|自動運転)/i },
+  { id:'markets', label:'経済・金融', base:75, re:/(?:earnings|IPO|financial results|revenue forecast|stocks? (?:slide|plunge|surge)|inflation|interest rate|data center investment|net migration|immigration statistics|labour market statistics|純移民|移民統計|決算|株式市場|上場|株価|金融市場|物価上昇)/i },
+  { id:'policy', label:'政治・制度', base:66, re:/(?:regulat|court ruling|lawsuit|export controls?|export restrictions?|輸出規制|輸出管理|\bbans?\b|\bbanned\b|\bnominee\b|\bFDA\b|\bFAA\b|congress|senate|ballot measure|政府|法案|規制|指名撤回|禁止|裁判所|議会)/i },
+  { id:'technology', label:'科学・テクノロジー', base:76, re:/(?:research breakthrough|generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|asteroid impact crater|clinical trial|new semiconductor|quantum computer|new ai model|autonomous vehicle|self.driving|新技術|研究成果|量子コンピュータ|自動運転)/i },
 ];
+// Research artifacts are leads, not independent reporting. Do not promote generic repositories.
+const RESEARCH_LEAD = /(?:generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|millennium prize problem)/i;
+const RESEARCH_RESULT = /(?:\bproof\b|\bproves?\b|\bdisproof\b|\btheorem\b|\bformaliz\w*\b|証明|反証)/i;
+const PERIODIC = /^(?:#|＃)|(?:throwbackthursday|thursdayfivelist|doorsday|wipwednesday|whiskerswednesday|いい風呂の日|自由律すぎ俳句|画像をなんでもいいので|今日の(?:写真|イラスト))/i;
+const HYPOTHETICAL = /^(?:when |what if |imagine |もし)|(?:will occasionally just show up|wouldn't it be|shower thought)/i;
+const QUERY_ONLY = /^(?:report power outage|power outage|outage map|停電情報|停電|outage)$/i;
+const STRONG = /(?:generalized riemann hypothesis|riemann hypothesis|リーマン予想|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|critical vulnerability|actively exploited|zero.day|重大な脆弱性|net migration|純移民|export controls?|輸出規制|大規模障害)/i;
+const MATERIAL = /(?:customer|personal data|個人情報|顧客|万人|万件|million|billion|全国|national|critical infrastructure|基幹インフラ|emergency|緊急)/i;
+const WORLD_ONLY = (source) => String(source).startsWith('world_');
 const CAUTION = /(?:\brumou?r\b|\brumored\b|\breportedly\b|\balleged?\b|\bclaims?\b|\bmay\b|\bcould\b|\bbefore\b|\bahead of\b|\bexpected\b|\bset to\b|疑惑|可能性|見通し|との報道|予測|うわさ)/i;
 const STOP = new Set(['the','and','with','from','that','this','after','before','for','are','was','will','says','new','into','amid','over','under','its','not','has','been','against','more','about','they','their']);
 
@@ -80,22 +89,37 @@ function sameEvent(g, x) {
 }
 
 /** Return evidence-linked candidate events, never claims of verified facts. */
-export function buildWorldBrief(signals, { now = Date.now(), rejected = [] } = {}) {
+export function buildWorldBrief(signals, { now = Date.now(), rejected = [], terms = [] } = {}) {
+  // Use only current-run URL-linked trend samples. No match is unknown, not zero.
+  const attentionByUrl = new Map();
+  for (const t of terms) {
+    if (!Number.isFinite(t.score)) continue;
+    for (const s of t.samples || []) {
+      if (!Number.isFinite(s.ts) || s.ts < now - 72 * 3.6e6 || s.ts > now) continue;
+      const key = canonicalUrl(s.u);
+      if (key) attentionByUrl.set(key, Math.max(attentionByUrl.get(key) ?? 0, t.score));
+    }
+  }
+  let lowValueExcluded = 0;
   const groups = [];
   for (const s of signals || []) {
-    if (s.src === 'github') continue; // Repo promotion is not a news citation.
     const title = String(s.text || '').trim();
+    if (PERIODIC.test(title) || HYPOTHETICAL.test(title) || QUERY_ONLY.test(title) || ['urbandictionary','knowyourmeme','niconico','wikipedia'].includes(s.src)) {
+      lowValueExcluded++; continue;
+    }
+    const researchLead = s.src === 'github' && RESEARCH_LEAD.test(title) && RESEARCH_RESULT.test(title);
+    if (s.src === 'github' && (!researchLead || isSuspiciousSignal(s))) continue;
     if (title.length < 16 || title.length > 300) continue;
-    const cat = CATEGORIES.find((c) => c.re.test(title));
+    const cat = researchLead ? CATEGORIES.find((c) => c.id === 'technology') : CATEGORIES.find((c) => c.re.test(title));
     if (!cat) continue;
     const ts = Number(s.ts) || now, ageH = Math.max(0, (now - ts) / 3.6e6);
     if (ageH > 72) continue;
     const url = canonicalUrl(s.url);
     if (!url) continue;
-    const item = { title, category:cat.id, label:cat.label, base:cat.base, words:keywords(title), urlKey:url, source:s.src, url, ts, cves:cveIds(title), cautious:CAUTION.test(title) };
+    const item = { title, category:cat.id, label:cat.label, base:cat.base, words:keywords(title), urlKey:url, source:s.src, url, ts, cves:cveIds(title), cautious:CAUTION.test(title), researchLead, direct:WORLD_ONLY(s.src) };
     let group = groups.find((g) => sameEvent(g, item));
     if (!group) { group = { ...item, evidence:[], latest:ts }; groups.push(group); }
-    if (!group.evidence.some((e) => e.source === item.source && e.url === url)) group.evidence.push({ source:item.source, title, url, ts });
+    if (!group.evidence.some((e) => e.source === item.source && e.url === url)) group.evidence.push({ source:item.source, title, url, ts, kind:item.researchLead ? 'research-artifact' : item.direct ? 'direct-feed' : 'observed-headline' });
     group.latest = Math.max(group.latest, ts);
     group.cautious ||= item.cautious;
   }
@@ -103,7 +127,15 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [] } = {
     const nSources = new Set(g.evidence.map((e) => e.source)).size;
     const nPublishers = new Set(g.evidence.map((e) => { try { return new URL(e.url).hostname.replace(/^www\./, ''); } catch { return ''; } })).size;
     const ageH = Math.max(0, (now - g.latest) / 3.6e6);
-    const impact = Math.max(0, Math.min(100, Math.round(g.base + Math.min(8, (nSources - 1) * 4) + 5 * Math.exp(-ageH / 24) - (g.cautious ? 3 : 0))));
+    // Potential impact is independent of popularity, source count and truth status.
+    const strong = g.evidence.some((e) => STRONG.test(e.title));
+    const material = g.evidence.some((e) => MATERIAL.test(e.title));
+    const impact = Math.max(0, Math.min(100, Math.round(g.base + (strong ? 12 : 0) + (material ? 5 : 0))));
+    const attentionValues = g.evidence.map((e) => attentionByUrl.get(e.url)).filter(Number.isFinite);
+    const attention = attentionValues.length ? Math.max(...attentionValues) : null;
+    const priorityBand = impact < 70 ? 'low' : attention === null ? 'unknown-attention' : attention <= 45 ? 'hidden' : 'major';
+    const discoveryPriority = Math.round(impact + (priorityBand === 'hidden' ? 20 : priorityBand === 'unknown-attention' ? 10 : 0) + 5 * Math.exp(-ageH / 24));
+    const researchOnly = g.evidence.every((e) => e.kind === 'research-artifact');
     const evidence=[], used = new Set();
     for (const e of g.evidence.sort((a,b)=>b.ts-a.ts)) {
       if (used.has(e.source)) continue;
@@ -111,21 +143,24 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [] } = {
       if (evidence.length >= 5) break;
     }
     return {
-      id:eventId(g), title:g.title, category:g.category, categoryLabel:g.label, impact, at:g.latest,
+      id:eventId(g), title:g.title, category:g.category, categoryLabel:g.label, impact, attention, priorityBand, discoveryPriority, at:g.latest,
       verificationStatus:'unverified',
       corroborationStatus:nPublishers > 1 ? 'multiple-publisher-domains-not-independent-verification' : 'single-publisher-domain',
       sourceCount:nSources, publisherCount:nPublishers, evidence,
       status:nSources > 1 ? '複数チャネルで言及・真偽未検証' : '単独観測・真偽未検証',
-      caution:g.cautious ? '予測・疑惑・時点依存の表現を含む可能性。一次情報で確認してください。' : '重要度は自動推定です。内容の真偽は一次情報で確認してください。',
+      caution:researchOnly ? '公開リポジトリによる研究上の主張です。証明・査読・独立検証は未確認です。' : g.cautious ? '予測・疑惑・時点依存の表現を含む可能性。一次情報で確認してください。' : '重要度は自動推定です。内容の真偽は一次情報で確認してください。',
     };
-  }).sort((a,b)=>b.impact-a.impact || b.sourceCount-a.sourceCount || b.at-a.at).slice(0,30);
+  }).filter((e) => e.priorityBand !== 'low').sort((a,b)=>b.discoveryPriority-a.discoveryPriority || b.impact-a.impact || b.at-a.at || a.id.localeCompare(b.id)).slice(0,30);
   return {
-    version:1, generatedAt:now,
+    version:2, generatedAt:now,
     disclaimer:'自動抽出による重要度の推定であり、事実確認・報道の独立性の証明ではありません。',
     stats:{
       reviewed:(signals || []).length,
       flagged:rejected.filter((r)=>r.reason==='suspicious-distribution').length,
       duplicates:rejected.filter((r)=>r.reason==='duplicate').length,
+      lowValueExcluded,
+      hidden:events.filter((e)=>e.priorityBand==='hidden').length,
+      unknownAttention:events.filter((e)=>e.priorityBand==='unknown-attention').length,
       events:events.length,
       byCategory:Object.fromEntries(CATEGORIES.map((c)=>[c.id,events.filter((e)=>e.category===c.id).length])),
     }, events,
