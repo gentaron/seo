@@ -79,3 +79,45 @@ test('GitHubのチート関連語を配布宣伝として除外し報道記事�
   assert.equal(clean.length, 1);
   assert.equal(rejected.length, 2);
 });
+
+test('低注目・高影響を優先し不明な注目度をゼロと見なさない', () => {
+  const input = [
+    signal('github', 'grh-lean — A short Lean 4 proof of the Generalized Riemann Hypothesis', 'https://github.com/example/grh-lean'),
+    signal('lemmy', 'SpaceX wins FCC approval for orbital data center satellites', 'https://example.org/orbit'),
+    signal('hatena', '1Passwordへの不正アクセスについてまとめてみた', 'https://example.net/password'),
+    signal('bluesky', 'UK net migration falls to 77,000', 'https://example.net/migration'),
+    signal('world_cisa', 'Critical vulnerability actively exploited in network infrastructure', 'https://example.net/cisa'),
+    signal('misskey', 'いい風呂の日', 'https://example.net/bath'),
+    signal('googletrends', 'report power outage', 'https://example.net/search'),
+    signal('lemmy', 'When self-driving vehicles become mainstream, dead old people will occasionally just show up at their destinations.', 'https://example.net/joke'),
+    signal('world_arxiv_ai', 'A new AI model for routine document classification', 'https://example.net/routine'),
+    signal('hatena', 'New York bans talking AI stuffed animals and dolls for five years', 'https://example.net/dolls'),
+  ];
+  const terms = [16, 35, 74, 38].map((score,i) => ({ score, samples:[{ u:input[i].url, ts:input[i].ts }] }));
+  const { events, stats } = buildWorldBrief(input,{now:NOW,terms});
+  assert.equal(events.length,5);
+  assert.equal(events[0].priorityBand,'hidden');
+  assert.ok(events.find(e=>e.title.includes('Riemann')).caution.includes('未確認'));
+  assert.equal(events.find(e=>e.title.includes('1Password')).priorityBand,'major');
+  assert.equal(events.find(e=>e.title.includes('Critical vulnerability')).attention,null);
+  assert.equal(events.find(e=>e.title.includes('Critical vulnerability')).priorityBand,'unknown-attention');
+  assert.equal(stats.hidden,3);
+  assert.ok(events.every(e=>e.verificationStatus==='unverified'));
+});
+
+test('媒体数を増やしても推定影響度を水増ししない', () => {
+  const a = signal('hatena','Critical vulnerability in widely used software','https://example.net/cve');
+  const b = {...a,src:'reddit'};
+  const one = buildWorldBrief([a],{now:NOW}).events[0];
+  const two = buildWorldBrief([a,b],{now:NOW}).events[0];
+  assert.equal(one.impact,two.impact);
+  assert.equal(two.sourceCount,2);
+});
+
+test('同じ事象の複数トレンド断片を加算しない', () => {
+  const a = signal('github','grh-lean — A short Lean 4 proof of the Generalized Riemann Hypothesis','https://github.com/example/grh');
+  const terms = [16,13,10,9].map(score=>({score,samples:[{u:a.url,ts:a.ts}]}));
+  const {events} = buildWorldBrief([a],{now:NOW,terms});
+  assert.equal(events.length,1);
+  assert.equal(events[0].attention,16);
+});
