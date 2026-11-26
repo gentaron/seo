@@ -45,7 +45,7 @@ const CATEGORIES = [
   { id:'security', label:'サイバー・セキュリティ', base:89, re:/(?:CVE-\d{4}-\d+|java4shell|vulnerabilit|malware|ransomware|\bRCE\b|cyber.?attack|data breach|security flaw|情報漏[え洩]い?|情報流出|脆弱性|不正アクセス|サイバー攻撃)/i },
   { id:'infrastructure', label:'社会インフラ', base:82, re:/(?:services? down|outage|flight stoppage|blackout|power failure|system outage|network disruption|インフラ障害|大規模障害|停電|運航停止)/i },
   { id:'geopolitics', label:'地政学・安全保障', base:80, re:/(?:ukrain|russia|crimea|kerch|military strike|missile|invasion|ceasefire|geopolitic|warfare|侵攻|軍事|停戦|戦争|台湾有事|クリミア|ウクライナ)/i },
-  { id:'markets', label:'経済・金融', base:75, re:/(?:earnings|IPO|financial results|revenue forecast|stocks? (?:slide|plunge|surge)|inflation|interest rate|data center investment|net migration|immigration statistics|labour market statistics|純移民|移民統計|決算|株式市場|上場|株価|金融市場|物価上昇)/i },
+  { id:'markets', label:'経済・金融', base:75, re:/(?:earnings|IPO|financial results|revenue forecast|stocks? (?:slide|plunge|surge)|inflation|interest rate|FOMC statement|monetary policy decision|data center investment|net migration|immigration statistics|labour market statistics|純移民|移民統計|決算|株式市場|上場|株価|金融市場|物価上昇)/i },
   { id:'policy', label:'政治・制度', base:66, re:/(?:regulat|court ruling|lawsuit|export controls?|export restrictions?|(?:regulated|restricted|banned) (?:NVIDIA )?GPUs?|規制されているNVIDIAのGPU|輸出規制|輸出管理|\bbans?\b|\bbanned\b|\bnominee\b|\bFDA\b|\bFAA\b|congress|senate|ballot measure|政府|法案|規制|指名撤回|禁止|裁判所|議会)/i },
   { id:'technology', label:'科学・テクノロジー', base:76, re:/(?:research breakthrough|first direct detection|gravitational wave detection|new particle discovery|phase (?:III|3) clinical trial|millennium prize problem|generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|asteroid impact crater|clinical trial|new semiconductor|quantum computer|new ai model|autonomous vehicle|self.driving|新技術|研究成果|量子コンピュータ|自動運転)/i },
 ];
@@ -136,7 +136,7 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [], term
     const attentionValues = g.evidence.map((e) => attentionByUrl.get(e.url)).filter(Number.isFinite);
     const attention = attentionValues.length ? Math.max(...attentionValues) : null;
     const priorityBand = impact < 70 ? 'low' : attention === null ? 'unknown-attention' : attention <= 45 ? 'hidden' : 'major';
-    const discoveryPriority = Math.round(impact + (priorityBand === 'hidden' ? 20 : priorityBand === 'unknown-attention' ? 10 : 0) + 5 * Math.exp(-ageH / 24));
+    const discoveryPriority = Math.round(impact + (priorityBand === 'hidden' ? 25 : priorityBand === 'unknown-attention' ? 10 : 0) + 5 * Math.exp(-ageH / 24));
     const researchOnly = g.evidence.every((e) => e.kind === 'research-artifact' || String(e.source).startsWith('world_arxiv'));
     const evidence=[], used = new Set();
     for (const e of g.evidence.sort((a,b)=>b.ts-a.ts)) {
