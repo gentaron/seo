@@ -280,10 +280,5 @@ export function langWithHint(text, hint) {
 }
 
 function escapeRe(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\  return cands;
-}
-
-function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}');
 }
