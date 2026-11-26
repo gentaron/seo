@@ -50,6 +50,9 @@ await page.click('#b-region [data-v="ja"]');
 const jaRows = await page.locator('#board tr').count();
 check('トレンド一覧：日本で絞り込める', jaRows > 0 && jaRows < rows, `${jaRows} 行`);
 await page.click('#b-region [data-v=""]');
+await page.selectOption('#b-cat', 'scandal');
+check('トレンド一覧：炎上・事件カテゴリで絞り込める', (await page.locator('#board tr').count()) > 0);
+await page.selectOption('#b-cat', '');
 await page.selectOption('#b-sort', 'vel');
 check('トレンド一覧：伸び率順に並び替えられる', (await page.locator('#board tr').count()) === rows);
 await shot('00-board');
@@ -100,7 +103,7 @@ await page.click('[data-tab="notes"]');
 check('ネタ帳タブに保存した語がある', (await page.locator('#notes li').count()) === 1);
 await page.click('[data-tab="sources"]');
 const nSrc = await page.locator('.src').count();
-check('観測網に全媒体が並ぶ', nSrc >= 14, `${nSrc} 媒体`);
+check('観測網に全媒体が並ぶ', nSrc >= 20, `${nSrc} 媒体`);
 
 const before = await page.evaluate(() => document.documentElement.dataset.theme);
 await page.click('#theme');

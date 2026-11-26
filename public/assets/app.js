@@ -17,6 +17,7 @@ const STATUS = {
   revival: { icon: '🧟', label: '再燃' },
   cool: { icon: '🥀', label: '失速' },
   slang: { icon: '🗯', label: 'スラング' },
+  scandal: { icon: '🚨', label: '炎上・事件' },
   mainstream: { icon: '📣', label: '主流' },
   steady: { icon: '・', label: '定着' },
 };
@@ -132,7 +133,12 @@ async function api(path, init) {
 }
 
 /* ---------------- トレンド一覧（Google トレンド風） ---------------- */
-const CAT = { sns: 'SNS', community: 'コミュニティ', slang: 'スラング・ミーム', video: '動画', tech: 'テック', mainstream: 'ニュース・一般', other: 'その他' };
+const CAT = {
+  scandal: '🚨 炎上・事件', gossip: '📸 芸能・ゴシップ', oddity: '🦩 珍ニュース', board: '🗯 掲示板まとめ', netnews: '🌐 ネットニュース',
+  news: '📰 ニュース', sns: '💬 SNS', community: '👥 コミュニティ', slang: '📕 スラング', video: '📺 動画', tech: '💻 テック',
+  mainstream: '📈 主流', other: 'その他',
+};
+const isOtherLang = (l) => l !== 'ja' && l !== 'en';
 const BOARD_SORT = {
   score: (a, b) => b.score - a.score,
   vel: (a, b) => b.vel - a.vel || b.score - a.score,
@@ -145,7 +151,7 @@ function boardTerms() {
   const now = Date.now();
   return (state.snap?.terms ?? [])
     .filter((t) => {
-      if (b.region && t.lang !== b.region) return false;
+      if (b.region === 'other' ? !isOtherLang(t.lang) : b.region && t.lang !== b.region) return false;
       if (b.window && now - t.first > Number(b.window) * 3.6e6) return false;
       if (b.cat && (t.cat || 'other') !== b.cat) return false;
       if (b.active && !(t.vel > 0.05 || t.status === 'new')) return false;
@@ -242,7 +248,7 @@ function filteredTerms() {
   const terms = state.snap?.terms ?? [];
   const q = state.q.trim().toLowerCase();
   return terms.filter((t) => {
-    if (state.lang && t.lang !== state.lang) return false;
+    if (state.lang === 'other' ? !isOtherLang(t.lang) : state.lang && t.lang !== state.lang) return false;
     if (state.status && t.status !== state.status && !t.badges.includes(state.status)) return false;
     if (state.hideMain && t.main && t.spread <= 2 && !state.status) return false;
     if (q && !t.t.toLowerCase().includes(q) && !t.k.includes(q)) return false;
@@ -525,7 +531,10 @@ function renderRaw() {
 function renderSources() {
   const s = state.snap;
   if (!s) return;
-  const GENRE = { sns: 'SNS', community: 'コミュニティ', slang: 'スラング辞典', video: '動画', tech: '技術', mainstream: '主流の物差し' };
+  const GENRE = {
+    sns: 'SNS', community: 'コミュニティ', slang: 'スラング辞典', video: '動画', tech: '技術', mainstream: '主流の物差し',
+    news: 'ニュース', gossip: '芸能・ゴシップ', oddity: '珍ニュース', board: '掲示板まとめ', netnews: 'ネット発ニュース',
+  };
   $('#srcgrid').innerHTML = s.sources
     .map(
       (m) => `<article class="src"><header><span>${m.icon}</span>${esc(m.label)}<em class="st ${m.ok ? 'ok' : 'ng'}">${m.ok ? `${m.count} 件` : '停止'}</em></header>

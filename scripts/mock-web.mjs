@@ -33,7 +33,28 @@ const WAVES = [
   { t: 'ラブブ沼', peak: -12, w: 14 },
   { t: '生成AI切り抜き', peak: 2, w: 6 },
   { t: 'ヤバみ', peak: -80, w: 60 },
+  // 炎上・事件・どうでもいいニュース
+  { t: '回転寿司テロ', peak: -1, w: 6, news: true },
+  { t: '謝罪会見', peak: -5, w: 8, news: true },
+  { t: '巨大カボチャ', peak: 0, w: 5, news: true, odd: true },
+  { t: 'kiss cam', peak: -3, w: 7, en: true, news: true },
+  { t: 'Florida Man', peak: -9, w: 12, en: true, news: true, odd: true },
+  { t: 'emotional support alligator', peak: 0, w: 5, en: true, news: true, odd: true },
 ];
+
+const JA_NEWS = [
+  (t) => `${t}で騒動、運営が謝罪「再発防止に努める」`,
+  (t) => `【炎上】${t}がSNSで物議　批判殺到`,
+  (t) => `${t}巡り20代の男を逮捕　警視庁`,
+  (t) => `まさかの${t}、ネットで話題に`,
+];
+const EN_NEWS = [
+  (t) => `${t} sparks backlash online`,
+  (t) => `Man arrested after ${t} incident at stadium`,
+  (t) => `${t} goes viral for all the wrong reasons`,
+  (t) => `Why everyone is talking about ${t}`,
+];
+const NEWS_HOSTS = /news\.google|yahoo\.co\.jp|nhk\.or\.jp|itmedia|gigazine|togetter|livedoor|jbpress|hamusoku|jin115|esuteru|girlschannel|himasoku|bunshun|dailyshincho|jprime|tmz\.com|pagesix|dailymail|upi\.com|fark\.com|boingboing|huffpost|bbci|theguardian|npr\.org|aljazeera|france24|nhkworld|producthunt/;
 
 /** 主流（どこでも話題になっているが “ニッチ” ではない） */
 const MAINSTREAM = ['World Series', 'Election', '大谷翔平', '紅白歌合戦', 'iPhone 18', 'Taylor Swift'];
@@ -230,6 +251,17 @@ export function makeMockFetch({ base = Date.now() } = {}) {
     }
     if (u.includes('lemmy.world')) {
       return ok({ posts: enLive.slice(0, 3).map((w, i) => ({ post: { name: `Is "${w.t}" the new "goblin mode"?`, ap_id: `https://lemmy.world/post/${i}`, published: new Date(now - H).toISOString() }, counts: { score: 50, comments: 12 }, community: { name: 'memes' } })) });
+    }
+    if (NEWS_HOSTS.test(u)) {
+      const enHost = /google\.com\/rss.*(US|GB|IN|AU)|tmz|pagesix|dailymail|upi|fark|boingboing|huffpost|bbci|guardian|npr|aljazeera|france24|nhkworld|producthunt/.test(u);
+      const pool = live(now, base, (w) => !!w.en === enHost && (w.news || r() < 0.3));
+      const tpl = enHost ? EN_NEWS : JA_NEWS;
+      const items = pool.slice(0, 6).map((w, i) => ({
+        title: `${tpl[(i + w.t.length) % tpl.length](w.t)}${u.includes('news.google') ? ' - モック新聞' : ''}`,
+        link: `https://news.example/${encodeURIComponent(w.t)}/${u.length % 97}/${i}`,
+      }));
+      items.push({ title: enHost ? 'Stock markets close mixed' : '各地で冷え込み　平年を下回る', link: `https://news.example/plain/${u.length}` });
+      return rss(items);
     }
     if (u.includes('wikipedia.org/api/rest_v1/page/summary')) {
       return ok({ type: 'standard', extract: 'モックの Wikipedia 要約です。', content_urls: { desktop: { page: 'https://ja.wikipedia.org/' } } });

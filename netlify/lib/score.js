@@ -25,6 +25,10 @@ const LEXICON_TTL_DAYS = 30;
 const SLANG_SOURCES = new Set(['urbandictionary', 'knowyourmeme', 'misskey', 'reddit', 'niconico', 'bluesky']);
 const MAINSTREAM_SOURCES = new Set(['googletrends', 'wikipedia']);
 
+/** 炎上・事件・不祥事・ゴシップを示す語（日本語・英語） */
+export const RE_SCANDAL =
+  /(炎上|逮捕|容疑|書類送検|起訴|不祥事|謝罪|疑惑|不倫|騒動|物議|批判殺到|問題視|流出|告発|訴訟|提訴|辞任|活動休止|活動自粛|解雇|降板|パワハラ|セクハラ|詐欺|横領|裏金|暴行|盗撮|迷惑行為|飲酒運転|事件|事故|死亡|行方不明|文春|スクープ|熱愛|離婚|破局|\bscandal|\barrest|\bcharged\b|lawsuit|\bsued\b|backlash|outrage|controvers|apologi[sz]|\bfired\b|resign|\bleak|allegation|accused|\bprobe\b|cheating|\bfeud\b|banned|\bdrama\b|indicted|police|shooting|crash\b|dies\b|dead\b|missing\b|cancel(?:l)?ed)/i;
+
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const round = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
 
@@ -61,7 +65,7 @@ function recency(ts, now) {
  * @param {number} p.now
  * @param {number} [p.limit]
  */
-export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = Date.now(), limit = 160 }) {
+export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = Date.now(), limit = 300 }) {
   const pct = engagementPercentiles(signals);
   const scored = [];
 
@@ -71,6 +75,7 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
     const perSrc = new Map();
     let mainstreamHit = false;
     let slangSrc = false;
+    let scandalHits = 0;
     let velHint = 0;
     for (const h of c.hits) {
       const sig = signals[h.i];
@@ -80,6 +85,7 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
       if (sig.mainstream) mainstreamHit = true;
       if (sig.slang || SLANG_SOURCES.has(sig.src)) slangSrc = true;
       velHint = Math.max(velHint, sig.vel || 0);
+      if (RE_SCANDAL.test(sig.text)) scandalHits += 1;
     }
     const spread = perSrc.size;
     // 1 媒体の中で何度も出ても頭打ち（大量投稿 1 媒体に引っ張られないように）
@@ -103,6 +109,8 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
     const onlyMainstream = [...perSrc.keys()].every((s) => MAINSTREAM_SOURCES.has(s));
     const mainstreamPenalty = onlyMainstream ? 0.45 : mainstreamHit ? 0.75 : 1;
     // 本文から掘っただけ・1 媒体だけ・造語っぽくもない語は一般語の可能性が高いので半減
+    // 炎上・事件・スキャンダル：用例の 3 割以上（最低 1 件）が該当語を含む
+    const scandal = scandalHits >= Math.max(1, Math.ceil(c.hits.length * 0.3));
     const plainPenalty = !c.explicit && spread === 1 && slang < 0.35 ? 0.5 : 1;
 
     const raw =
@@ -111,7 +119,8 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
       (1 + 0.6 * (clamp(velocity, 0, 3) / 3) + 0.25 * velHint) *
       (0.8 + 0.6 * slang) *
       mainstreamPenalty *
-      plainPenalty;
+      plainPenalty *
+      (scandal ? 1.25 : 1);
 
     scored.push({
       c,
@@ -123,6 +132,7 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
       novelty,
       slang,
       mainstream: onlyMainstream || mainstreamHit,
+      scandal,
       raw,
       prev,
       firstSeen,
@@ -188,7 +198,7 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
         vel: round(s.velocity),
         spread: s.spread,
         srcs: s.srcs,
-        cat: categoryOf(s.srcs, sourceMap),
+        cat: s.scandal ? 'scandal' : categoryOf(s.srcs, sourceMap),
         status: status.main,
         badges: status.badges,
         first: s.firstSeen,
@@ -207,8 +217,10 @@ export function scoreRun({ signals, candidates, sourceMap, lexicon = {}, now = D
 
 /** 一番効いている媒体（主流の物差しは除く）のジャンルをカテゴリにする */
 export function categoryOf(srcs, sourceMap) {
-  const main = srcs.find((id) => !MAINSTREAM_SOURCES.has(id)) ?? srcs[0];
-  return sourceMap[main]?.genre ?? 'other';
+  const genres = srcs.filter((id) => !MAINSTREAM_SOURCES.has(id)).map((id) => sourceMap[id]?.genre);
+  // 上位 3 媒体に「芸能・珍ニュース・まとめ」が入っていれば、その性格を優先
+  for (const g of ['gossip', 'oddity', 'board']) if (genres.slice(0, 3).includes(g)) return g;
+  return genres[0] ?? sourceMap[srcs[0]]?.genre ?? 'other';
 }
 
 /** 状態判定：誕生 > 急騰 > 拡散 > 失速 > 定着 */
@@ -221,6 +233,7 @@ export function classify(s, prev, now) {
   if (prev && s.velocity <= -0.35) badges.push('cool');
   if (prev && prev.last && now - prev.last > 24 * 3.6e6) badges.push('revival'); // 1 日以上消えてから再出現
   if (s.slang >= 0.55) badges.push('slang');
+  if (s.scandal) badges.push('scandal');
   if (s.mainstream) badges.push('mainstream');
   const order = ['new', 'revival', 'surge', 'spread', 'cool'];
   const main = order.find((b) => badges.includes(b)) || 'steady';
