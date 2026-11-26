@@ -21,6 +21,7 @@
 import {
   extractEntities, isAiContext, detectThemes, slug, THEMES, ENTITY_MAP, CATS,
 } from './lexicon.js';
+import { describe, EVENTS } from './describe.js';
 
 const H = 3.6e6;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -396,6 +397,9 @@ export function analyzeAi({ signals, sourceMap, ledger = {}, now = Date.now() })
     const prev = prevEnts[e.id];
     const spark = [...(prev?.s || []).map((p) => p[1]), r2(row.A)].slice(-24);
     const status = statusOf(row, warm, now);
+    const facts = factsOf(hits);
+    const ctx = describe(e, hits, { famScore, facts, status });
+    for (const x of ev) x.tag = EVENTS.find((k) => k.re.test(x.t))?.angle;
     return {
       rank: i + 1,
       prevRank: prevRanks[e.id] ?? null,
@@ -418,7 +422,12 @@ export function analyzeAi({ signals, sourceMap, ledger = {}, now = Date.now() })
       spark,
       url: e.arts[0]?.url || ev[0]?.u || '',
       arts: e.arts.slice(0, 4),
-      facts: factsOf(hits),
+      facts,
+      about: ctx.about,
+      why: ctx.why,
+      angle: ctx.angle,
+      quote: ctx.quote,
+      events: ctx.events,
       ev,
     };
   });

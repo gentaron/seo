@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="ja" data-theme="dark">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Undercurrent｜世界のニッチ潮流＆ネットスラング大全</title>
 <meta name="description" content="Bluesky・Misskey・Mastodon・Reddit・ニコニコ・はてブ・Urban Dictionary など 14 の無料ソースを 3 時間ごとに巡回。半日で入れ替わるレベルのニッチな話題と新語を自動で検出し、ネットスラング大全として蓄積します。">
-<meta name="theme-color" content="#07080c">
+<meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Undercurrent｜世界のニッチ潮流＆ネットスラング大全">
 <meta property="og:description" content="半日で全部入れ替わる、SNS の底流を観測するレーダー。">
@@ -17,6 +18,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="alternate" type="application/rss+xml" title="Undercurrent RSS" href="/api/rss">
 <link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/ai-theme.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">本文へスキップ</a>
@@ -24,52 +26,55 @@
 <header class="top">
   <div class="top__in">
     <a class="brand" href="/" aria-label="Undercurrent トップ">
-      <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
-        <path d="M2 12c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".35"/>
-        <path d="M2 18c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
-        <path d="M2 24c4-4 8-4 12 0s8 4 12 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-        <circle cx="26" cy="7" r="3" fill="var(--hot)"/>
-      </svg>
-      <span class="brand__txt"><strong>UNDERCURRENT</strong><small>ニッチ潮流＆ネットスラング大全</small></span>
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M3 13c3.8-3.6 7.6-3.6 11.4 0s7.6 3.6 11.4 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" opacity=".4"/><path d="M3 20c3.8-3.6 7.6-3.6 11.4 0s7.6 3.6 11.4 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+      </span>
+      <span class="brand__txt"><strong>Undercurrent</strong></span>
     </a>
 
     <div class="pulse" id="pulse" aria-live="polite">
       <span class="pulse__dot" aria-hidden="true"></span>
-      <span id="pulse-text">観測データを読み込み中…</span>
+      <span id="pulse-text">読み込み中…</span>
     </div>
 
     <div class="top__act">
+      <a class="navlink" href="/export/" title="Undercurrent と AI Pulse の全情報をまとめてコピー">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>まとめてコピー</span>
+      </a>
+      <a class="tablink-ai" href="/ai/" title="AI・テックでいま本当に流行っているもの（毎時更新）"><span aria-hidden="true">✦</span> AI Pulse</a>
       <button class="iconbtn" id="refresh" type="button" title="今すぐ観測（15分クールダウン）" aria-label="今すぐ観測">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <button class="iconbtn" id="theme" type="button" title="配色を切り替え" aria-label="配色を切り替え">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
       </button>
     </div>
   </div>
 
-  <div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
+  <div class="tabbar">
+    <nav class="tabs" role="tablist" aria-label="表示切り替え">
+      <button role="tab" class="tab" data-tab="board" aria-selected="true">トレンド</button>
+      <button role="tab" class="tab" data-tab="feed" aria-selected="false">フィード</button>
+      <button role="tab" class="tab" data-tab="world" aria-selected="false">世界の情勢</button>
+      <button role="tab" class="tab" data-tab="lexicon" aria-selected="false">スラング大全</button>
+      <button role="tab" class="tab" data-tab="notes" aria-selected="false">ネタ帳 <span class="count" id="notes-count">0</span></button>
+      <button role="tab" class="tab" data-tab="raw" aria-selected="false">生データ</button>
+      <button role="tab" class="tab" data-tab="sources" aria-selected="false">観測網</button>
+    </nav>
+  </div>
 
-  <nav class="tabs" role="tablist" aria-label="表示切り替え">
-    <button role="tab" class="tab" data-tab="board" aria-selected="true">トレンド一覧</button>
-    <button role="tab" class="tab" data-tab="world" aria-selected="false">世界の情勢</button>
-    <button role="tab" class="tab" data-tab="feed" aria-selected="false">潮流フィード</button>
-    <button role="tab" class="tab" data-tab="lexicon" aria-selected="false">スラング大全</button>
-    <button role="tab" class="tab" data-tab="raw" aria-selected="false">生データ</button>
-    <button role="tab" class="tab" data-tab="notes" aria-selected="false">ネタ帳 <span class="count" id="notes-count">0</span></button>
-    <button role="tab" class="tab" data-tab="sources" aria-selected="false">観測網</button>
-    <a class="tablink-ai" href="/ai/" title="AI・テックでいま本当に流行っているもの（毎時更新）"><span aria-hidden="true">✦</span> AI Pulse<small>NEW</small></a>
-  </nav>
-  <div class="cross-link"><a href="https://qaiz.gen5wx.workers.dev/?tab=unified" target="_blank" rel="noopener noreferrer">世界 × 市場 × 現実世界を統合観測する <span aria-hidden="true">↗</span></a><span>真偽未検証の話題と市場分析は分けて表示</span></div>
+  <div class="ticker" aria-hidden="true"><div class="ticker__track" id="ticker"></div></div>
 </header>
+<div class="cross-link"><a href="https://qaiz.gen5wx.workers.dev/?tab=unified" target="_blank" rel="noopener noreferrer">世界 × 市場 × 現実世界を統合観測する <span aria-hidden="true">↗</span></a><span>真偽未検証の話題と市場分析は分けて表示</span></div>
 
 <main id="main" class="wrap">
   <!-- ============ トレンド一覧（Google トレンド風・検索不要） ============ -->
   <section class="panel" data-panel="board">
     <div class="board-head">
       <div>
-        <h1 class="h1">いま伸びているトレンド</h1>
-        <p class="mute" id="board-sub">検索しなくても、観測したトレンドを全部ここに並べます。</p>
+        <p class="eyebrow">NICHE TRENDS</p>
+        <h1 class="h1">いま、ネットの底で<br class="sp">動いているもの。</h1>
+        <p class="lede" id="board-sub">検索しなくても、観測したトレンドを全部ここに並べます。</p>
       </div>
     </div>
     <div class="filters board-filters">
@@ -114,7 +119,9 @@
 
   <!-- ============ 世界の情勢：トレンド熱量とは別尺度 ============ -->
   <section class="panel" data-panel="world" hidden>
-    <h1 class="h1">世界の情勢 <small class="mute">ネットの熱量ではなく、変化の重要度を見る</small></h1>
+    <p class="eyebrow">WORLD</p>
+    <h1 class="h1">世界の情勢</h1>
+    <p class="lede">ネットの熱量ではなく、変化の重要度で見る。</p>
     <p class="world-intro">サイバー攻撃、社会インフラ、地政学、金融、政治制度などの公開見出しを整理します。重要度はルールベースの暫定推定で、<strong>複数媒体で言及されても事実確認済みとは限りません。</strong> 元の投稿・記事を必ず確認してください。</p>
     <div class="world-controls">
       <select id="world-cat" aria-label="情勢の分野">
@@ -134,6 +141,9 @@
 
   <!-- ============ 潮流フィード ============ -->
   <section class="panel" data-panel="feed" hidden>
+    <p class="eyebrow">FEED</p>
+    <h1 class="h1">潮流フィード</h1>
+    <p class="lede">同じデータを、タイムラインのように。</p>
     <div class="filters">
       <div class="chips" role="group" aria-label="状態で絞り込み" id="status-chips">
         <button class="chip is-on" data-status="">すべて</button>
@@ -190,6 +200,7 @@
   <section class="panel" data-panel="lexicon" hidden>
     <div class="lex-head">
       <div>
+        <p class="eyebrow">LEXICON</p>
         <h1 class="h1">ネットスラング大全</h1>
         <p class="mute" id="lex-counts">観測した語は自動でここに蓄積されます。3 日観測されない語は「死語」に。</p>
       </div>
@@ -229,7 +240,9 @@
 
   <!-- ============ 生データ ============ -->
   <section class="panel" data-panel="raw" hidden>
-    <h1 class="h1">生データ <small class="mute">各媒体から拾った投稿・トピックの上位</small></h1>
+    <p class="eyebrow">RAW</p>
+    <h1 class="h1">生データ</h1>
+    <p class="lede">各媒体から拾った投稿・トピックの上位。</p>
     <div class="raw" id="raw"></div>
   </section>
 
@@ -237,6 +250,7 @@
   <section class="panel" data-panel="notes" hidden>
     <div class="lex-head">
       <div>
+        <p class="eyebrow">NOTES</p>
         <h1 class="h1">ネタ帳</h1>
         <p class="mute">☆ を付けた語。このブラウザにだけ保存されます。</p>
       </div>
@@ -251,7 +265,9 @@
 
   <!-- ============ 観測網 ============ -->
   <section class="panel" data-panel="sources" hidden>
-    <h1 class="h1">観測網 <small class="mute">すべて無料・API キー不要</small></h1>
+    <p class="eyebrow">NETWORK</p>
+    <h1 class="h1">観測網</h1>
+    <p class="lede">すべて無料・API キー不要の 14 媒体。</p>
     <div class="srcgrid" id="srcgrid"></div>
     <section class="explain">
       <h2>スコアの読み方</h2>
