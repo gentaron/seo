@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Undercurrent｜世界のニッチ潮流＆ネットスラング大全</title>
-<meta name="description" content="Bluesky・Misskey・Mastodon・Reddit・ニコニコ・はてブ・Urban Dictionary など 14 の無料ソースを 3 時間ごとに巡回。半日で入れ替わるレベルのニッチな話題と新語を自動で検出し、ネットスラング大全として蓄積します。">
+<meta name="description" content="Bluesky・Misskey・Mastodon・Reddit・ニコニコ・はてブ・Urban Dictionary など 24 系統・約 100 本の無料ソース（SNS・掲示板まとめ・ゴシップ・事件／珍ニュース・世界 14 地域のトレンド）を 3 時間ごとに巡回。半日で入れ替わるレベルのニッチな話題と新語を自動で検出し、ネットスラング大全として蓄積します。">
 <meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
@@ -82,6 +82,7 @@
         <button class="is-on" data-v="">全世界</button>
         <button data-v="ja">日本</button>
         <button data-v="en">英語圏</button>
+        <button data-v="other">その他の言語</button>
       </div>
       <div class="seg" role="group" aria-label="期間" id="b-window">
         <button data-v="4">過去4時間</button>
@@ -91,12 +92,18 @@
       </div>
       <select id="b-cat" aria-label="カテゴリ">
         <option value="">すべてのカテゴリ</option>
-        <option value="sns">SNS</option>
-        <option value="community">コミュニティ</option>
-        <option value="slang">スラング・ミーム</option>
-        <option value="video">動画</option>
-        <option value="tech">テック</option>
-        <option value="mainstream">ニュース・一般</option>
+        <option value="scandal">🚨 炎上・事件・スキャンダル</option>
+        <option value="gossip">📸 芸能・ゴシップ</option>
+        <option value="oddity">🦩 珍ニュース・どうでもいい</option>
+        <option value="board">🗯 掲示板・まとめ</option>
+        <option value="netnews">🌐 ネット発ニュース</option>
+        <option value="news">📰 ニュース</option>
+        <option value="sns">💬 SNS</option>
+        <option value="community">👥 コミュニティ</option>
+        <option value="slang">📕 スラング・ミーム</option>
+        <option value="video">📺 動画</option>
+        <option value="tech">💻 テック</option>
+        <option value="mainstream">📈 検索・百科（主流）</option>
       </select>
       <select id="b-sort" aria-label="並び順">
         <option value="score">注目度順（社会的影響度とは別）</option>
@@ -151,6 +158,7 @@
         <button class="chip" data-status="surge">🔥 急騰</button>
         <button class="chip" data-status="spread">🌊 拡散</button>
         <button class="chip" data-status="revival">🧟 再燃</button>
+        <button class="chip" data-status="scandal">🚨 炎上・事件</button>
         <button class="chip" data-status="slang">🗯 スラング濃いめ</button>
         <button class="chip" data-status="cool">🥀 失速</button>
       </div>
@@ -159,6 +167,7 @@
           <button class="is-on" data-lang="">全世界</button>
           <button data-lang="ja">日本語圏</button>
           <button data-lang="en">英語圏</button>
+          <button data-lang="other">その他</button>
         </div>
         <label class="find">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21l-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -277,6 +286,7 @@
         <li><b>伸び率</b> … その語の過去の平均（指数移動平均）に対して今回どれだけ伸びたか。0.8 以上で 🔥。</li>
         <li><b>新しさ</b> … 初めて観測してからの経過時間で減ります。12 時間以内は 🌱。</li>
         <li><b>スラング度</b> … 造語っぽい形（〜構文 / 〜界隈 / -maxxing / -core など）とスラング系媒体での出現から推定。</li>
+        <li><b>🚨 炎上・事件</b> … 用例の 3 割以上に「炎上・逮捕・謝罪・不倫・scandal・backlash」などが含まれる語。少し加点されます。</li>
         <li><b>主流ネタ</b> … Google トレンドや Wikipedia の上位にしか出ていない語は減点。ニッチ優先です。</li>
         <li><b>半減期</b> … 直近 2 回の観測から熱量が半分になるまでの時間を推定。伸びている間は「上昇中」と表示します。</li>
       </ul>

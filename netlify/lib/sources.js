@@ -185,13 +185,22 @@ export const REDDIT_SUBS = [
   'ExplainTheJoke', 'OnlineCulture', 'youngpeopleyoutube', 'starterpacks',
 ];
 
-async function reddit(ctx) {
-  const multi = REDDIT_SUBS.join('+');
+/** 事件・珍ニュース・芸能ゴシップ系のサブレ */
+export const REDDIT_NEWS_SUBS = [
+  'nottheonion', 'offbeat', 'FloridaMan', 'Fauxmoi', 'popculturechat', 'byebyejob', 'news', 'worldnews',
+  'UpliftingNews', 'CrazyFuckingVideos', 'PublicFreakout', 'mildlyinfuriating', 'interestingasfuck', 'facepalm',
+];
+
+const reddit = (ctx) => redditFor(REDDIT_SUBS, 'rising', ctx);
+const redditNews = (ctx) => redditFor(REDDIT_NEWS_SUBS, 'hot', ctx);
+
+async function redditFor(subs, sort, ctx) {
+  const multi = subs.join('+');
   return firstOk(
     [
-      `https://www.reddit.com/r/${multi}/rising.json?limit=100&raw_json=1`,
-      `https://old.reddit.com/r/${multi}/rising.json?limit=100&raw_json=1`,
-      `https://www.reddit.com/r/${multi}/rising/.rss?limit=100`,
+      `https://www.reddit.com/r/${multi}/${sort}.json?limit=100&raw_json=1`,
+      `https://old.reddit.com/r/${multi}/${sort}.json?limit=100&raw_json=1`,
+      `https://www.reddit.com/r/${multi}/${sort}/.rss?limit=100`,
     ],
     async (url) => {
       if (url.includes('.rss')) {
@@ -273,8 +282,11 @@ async function lobsters(ctx) {
 /* =====================================================================
  * 7) Google トレンド（RSS）— 主流側の物差し。ニッチ判定の “減点” にも使う
  * =================================================================== */
+const GEO_LANG = { JP: 'ja', US: 'en', GB: 'en', IN: 'en', CA: 'en', AU: 'en', PH: 'en', KR: 'ko', TW: 'zh', BR: 'pt', DE: 'de', FR: 'fr', MX: 'es', ID: 'id' };
+
 async function googletrends(ctx) {
-  const geos = ['JP', 'US'];
+  // 世界の主要地域。言語ヒントは語の言語判定（漢字だけの中国語を日本語と誤判定しない等）に使う
+  const geos = ['JP', 'US', 'GB', 'IN', 'CA', 'AU', 'PH', 'KR', 'TW', 'BR', 'DE', 'FR', 'MX', 'ID'];
   const settled = await Promise.allSettled(
     geos.map((g) => getText(`https://trends.google.com/trending/rss?geo=${g}`, { ...ctx, ua: BROWSER_UA }).then((x) => ({ g, x }))),
   );
@@ -292,6 +304,7 @@ async function googletrends(ctx) {
         ts: parseDate(i.date) || now(),
         ctx: `${r.value.g}${i.extra['ht:news_item_title'] ? ` · ${i.extra['ht:news_item_title']}` : ''}`,
         terms: [{ t: i.title, w: 1 }],
+        lang: GEO_LANG[r.value.g],
         mainstream: traffic >= 20000,
       });
     }
@@ -389,7 +402,14 @@ async function knowyourmeme(ctx) {
  * 11) はてなブックマーク — 人気＋新着（日本語圏の “いま読まれてる” ）
  * =================================================================== */
 async function hatena(ctx) {
-  const feeds = ['https://b.hatena.ne.jp/hotentry/all.rss', 'https://b.hatena.ne.jp/entrylist/all.rss'];
+  const feeds = [
+    'https://b.hatena.ne.jp/hotentry/all.rss',
+    'https://b.hatena.ne.jp/entrylist/all.rss',
+    'https://b.hatena.ne.jp/hotentry/social.rss', // 世の中（事件・炎上）
+    'https://b.hatena.ne.jp/hotentry/entertainment.rss',
+    'https://b.hatena.ne.jp/hotentry/fun.rss', // おもしろ（どうでもいい系）
+    'https://b.hatena.ne.jp/hotentry/game.rss',
+  ];
   const settled = await Promise.allSettled(feeds.map((u) => getText(u, ctx)));
   const out = [];
   const seen = new Set();
@@ -470,6 +490,135 @@ async function lemmy(ctx) {
     }));
 }
 
+
+/* =====================================================================
+ * 汎用 RSS アダプタ — ニュース／ゴシップ／まとめ／珍ニュース
+ *   feeds: [{ u: URL, c: 表示用の出どころ, lang?: 言語ヒント, strip?: 末尾の「 - 媒体名」を落とす }]
+ *   1 本でも読めれば成功。全部落ちたときだけ失敗扱い。
+ * =================================================================== */
+function rssSource(feeds, { perFeed = 40, ua = BROWSER_UA } = {}) {
+  return async function fetchRss(ctx) {
+    const settled = await Promise.allSettled(feeds.map((f) => firstOk([].concat(f.u), (u) => getText(u, { ...ctx, ua })).then((x) => ({ f, x }))));
+    const out = [];
+    const seen = new Set();
+    for (const r of settled) {
+      if (r.status !== 'fulfilled') continue;
+      const { f, x } = r.value;
+      const items = parseFeed(x, ['hatena:bookmarkcount', 'slash:comments']);
+      items.slice(0, perFeed).forEach((i, idx) => {
+        let title = i.title;
+        if (f.strip) title = title.replace(/\s+[-–—|｜]\s+[^-–—|｜]{1,40}$/, ''); // Google ニュースの「 - 媒体名」
+        title = title.replace(/^【[^】]{0,8}速報[^】]{0,8}】\s*/, '').trim();
+        if (!title || seen.has(title)) return;
+        seen.add(title);
+        out.push({
+          kind: 'post',
+          text: title,
+          url: i.link,
+          // RSS には反応数が無いことが多いので、並び順（上ほど注目）を代わりに使う
+          score: Number(i.extra['hatena:bookmarkcount'] || i.extra['slash:comments'] || 0) || Math.max(1, perFeed - idx),
+          ts: parseDate(i.date) || now(),
+          ctx: f.c,
+          lang: f.lang,
+        });
+      });
+    }
+    if (!out.length) throw new Error(settled.find((s) => s.status === 'rejected')?.reason?.message || 'empty');
+    return out;
+  };
+}
+
+const gnews = (q, hl, gl, ceid) =>
+  q
+    ? `https://news.google.com/rss/search?q=${encodeURIComponent(`${q} when:1d`)}&hl=${hl}&gl=${gl}&ceid=${ceid}`
+    : `https://news.google.com/rss?hl=${hl}&gl=${gl}&ceid=${ceid}`;
+const JA = ['ja', 'JP', 'JP:ja'];
+const EN_US = ['en-US', 'US', 'US:en'];
+
+/** Google ニュース：総合＋「炎上・事件・不祥事」「珍ニュース」の検索フィードを各国で */
+const googlenews = rssSource([
+  { u: gnews('', ...JA), c: 'Googleニュース 日本', lang: 'ja', strip: true },
+  { u: gnews('炎上 OR 謝罪 OR 不祥事 OR 物議 OR 騒動', ...JA), c: 'Googleニュース 炎上', lang: 'ja', strip: true },
+  { u: gnews('逮捕 OR 容疑者 OR 書類送検 OR 事件', ...JA), c: 'Googleニュース 事件', lang: 'ja', strip: true },
+  { u: gnews('珍事 OR まさかの OR 話題に OR SNSで話題', ...JA), c: 'Googleニュース 話題', lang: 'ja', strip: true },
+  { u: gnews('', ...EN_US), c: 'Google News US', lang: 'en', strip: true },
+  { u: gnews('scandal OR backlash OR controversy OR apologizes', ...EN_US), c: 'Google News scandal', lang: 'en', strip: true },
+  { u: gnews('arrested OR charged OR lawsuit OR "goes viral"', ...EN_US), c: 'Google News incidents', lang: 'en', strip: true },
+  { u: gnews('', 'en-GB', 'GB', 'GB:en'), c: 'Google News UK', lang: 'en', strip: true },
+  { u: gnews('', 'en-IN', 'IN', 'IN:en'), c: 'Google News India', lang: 'en', strip: true },
+  { u: gnews('', 'en-AU', 'AU', 'AU:en'), c: 'Google News Australia', lang: 'en', strip: true },
+], { perFeed: 30 });
+
+/** Yahoo!ニュース トピックス（日本で一番読まれているニュースの見出し） */
+const yahoonews = rssSource(
+  ['top-picks', 'domestic', 'world', 'business', 'entertainment', 'sports', 'it', 'science', 'local'].map((c) => ({
+    u: `https://news.yahoo.co.jp/rss/topics/${c}.xml`,
+    c: `Yahoo!ニュース ${c}`,
+    lang: 'ja',
+  })),
+  { perFeed: 12 },
+);
+
+/** NHK（主要・社会＝事件事故・文化エンタメ） */
+const nhk = rssSource([
+  { u: 'https://www.nhk.or.jp/rss/news/cat0.xml', c: 'NHK 主要', lang: 'ja' },
+  { u: 'https://www.nhk.or.jp/rss/news/cat1.xml', c: 'NHK 社会', lang: 'ja' },
+  { u: 'https://www.nhk.or.jp/rss/news/cat2.xml', c: 'NHK 文化', lang: 'ja' },
+]);
+
+/** ネット発ニュース（炎上・バズの記事化が速い） */
+const netnews = rssSource([
+  { u: 'https://rss.itmedia.co.jp/rss/2.0/netlab.xml', c: 'ねとらぼ', lang: 'ja' },
+  { u: 'https://gigazine.net/news/rss_2.0/', c: 'GIGAZINE', lang: 'ja' },
+  { u: ['https://togetter.com/rss/index', 'https://togetter.com/rss/hot'], c: 'Togetter', lang: 'ja' },
+  { u: 'https://news.livedoor.com/topics/rss/top.xml', c: 'ライブドア', lang: 'ja' },
+  { u: 'https://news.livedoor.com/topics/rss/ent.xml', c: 'ライブドア 芸能', lang: 'ja' },
+  { u: 'https://jbpress.ismedia.jp/list/feed/rss', c: 'JBpress', lang: 'ja' },
+]);
+
+/** 掲示板まとめ（5ch 由来の “どうでもいい” 話題と事件ネタの宝庫） */
+const matome = rssSource([
+  { u: 'http://blog.livedoor.jp/dqnplus/index.rdf', c: '痛いニュース', lang: 'ja' },
+  { u: 'http://hamusoku.com/index.rdf', c: 'ハムスター速報', lang: 'ja' },
+  { u: 'https://jin115.com/index.rdf', c: 'オレ的ゲーム速報', lang: 'ja' },
+  { u: 'http://news4vip.livedoor.biz/index.rdf', c: 'ニュー速クオリティ', lang: 'ja' },
+  { u: 'http://blog.esuteru.com/index.rdf', c: 'はちま起稿', lang: 'ja' },
+  { u: 'https://girlschannel.net/topics/rss/', c: 'ガールズちゃんねる', lang: 'ja' },
+  { u: 'http://himasoku.com/index.rdf', c: 'ひまわり速報', lang: 'ja' },
+], { perFeed: 30 });
+
+/** 芸能・ゴシップ・スクープ */
+const gossip = rssSource([
+  { u: 'https://bunshun.jp/list/feed/rss', c: '文春オンライン', lang: 'ja' },
+  { u: ['https://www.dailyshincho.jp/feed/', 'https://www.dailyshincho.jp/rss/'], c: 'デイリー新潮', lang: 'ja' },
+  { u: 'https://www.jprime.jp/list/feed/rss', c: '週刊女性PRIME', lang: 'ja' },
+  { u: 'https://www.tmz.com/rss.xml', c: 'TMZ', lang: 'en' },
+  { u: 'https://pagesix.com/feed/', c: 'Page Six', lang: 'en' },
+  { u: 'https://www.dailymail.co.uk/tvshowbiz/index.rss', c: 'Daily Mail Showbiz', lang: 'en' },
+]);
+
+/** 世界の珍ニュース・どうでもいいニュース */
+const oddnews = rssSource([
+  { u: 'https://rss.upi.com/news/odd_news.rss', c: 'UPI Odd News', lang: 'en' },
+  { u: 'https://www.fark.com/fark.rss', c: 'Fark', lang: 'en' },
+  { u: 'https://boingboing.net/feed', c: 'Boing Boing', lang: 'en' },
+  { u: 'https://www.dailymail.co.uk/news/weird_news/index.rss', c: 'Daily Mail Weird', lang: 'en' },
+  { u: 'https://www.huffpost.com/section/weird-news/feed', c: 'HuffPost Weird', lang: 'en' },
+]);
+
+/** 世界のニュース（英語圏の主要紙・通信） */
+const worldnews = rssSource([
+  { u: 'https://feeds.bbci.co.uk/news/rss.xml', c: 'BBC', lang: 'en' },
+  { u: 'https://www.theguardian.com/world/rss', c: 'Guardian', lang: 'en' },
+  { u: 'https://feeds.npr.org/1001/rss.xml', c: 'NPR', lang: 'en' },
+  { u: 'https://www.aljazeera.com/xml/rss/all.xml', c: 'Al Jazeera', lang: 'en' },
+  { u: 'https://www.france24.com/en/rss', c: 'France 24', lang: 'en' },
+  { u: 'https://www3.nhk.or.jp/nhkworld/en/news/feeds/', c: 'NHK World', lang: 'en' },
+]);
+
+/** 新しいプロダクト（ガジェット・アプリ・AI ツールの流行り） */
+const producthunt = rssSource([{ u: 'https://www.producthunt.com/feed', c: 'Product Hunt', lang: 'en' }]);
+
 /* =====================================================================
  * 登録簿
  *   weight: 語のスコアに効く媒体の重み（ニッチ寄り・スラング寄りほど高い）
@@ -505,6 +654,16 @@ export const SOURCES = [
   { id: 'lobsters', label: 'Lobsters', icon: '🦞', lang: 'en', genre: 'tech', weight: 0.6, fetch: lobsters },
   { id: 'github', label: 'GitHub', icon: '🐙', lang: 'en', genre: 'tech', weight: 0.55, fetch: github },
   { id: 'lemmy', label: 'Lemmy', icon: '🐭', lang: 'en', genre: 'community', weight: 0.7, fetch: lemmy },
+  { id: 'redditnews', label: 'Reddit 事件・珍ニュース', icon: '🗞', lang: 'en', genre: 'oddity', weight: 0.85, fetch: redditNews },
+  { id: 'matome', label: '掲示板まとめ', icon: '🗯', lang: 'ja', genre: 'board', weight: 0.9, fetch: matome },
+  { id: 'netnews', label: 'ネット発ニュース', icon: '🌐', lang: 'ja', genre: 'netnews', weight: 0.85, fetch: netnews },
+  { id: 'gossip', label: '芸能・ゴシップ', icon: '📸', lang: 'mix', genre: 'gossip', weight: 0.8, fetch: gossip },
+  { id: 'oddnews', label: '世界の珍ニュース', icon: '🦩', lang: 'en', genre: 'oddity', weight: 0.9, fetch: oddnews },
+  { id: 'googlenews', label: 'Google ニュース', icon: '📰', lang: 'mix', genre: 'news', weight: 0.6, fetch: googlenews },
+  { id: 'yahoonews', label: 'Yahoo!ニュース', icon: '🟥', lang: 'ja', genre: 'news', weight: 0.6, fetch: yahoonews },
+  { id: 'nhk', label: 'NHK', icon: '📡', lang: 'ja', genre: 'news', weight: 0.45, fetch: nhk },
+  { id: 'worldnews', label: '海外ニュース', icon: '🌍', lang: 'en', genre: 'news', weight: 0.45, fetch: worldnews },
+  { id: 'producthunt', label: 'Product Hunt', icon: '🐱', lang: 'en', genre: 'tech', weight: 0.5, fetch: producthunt },
   { id: 'googletrends', label: 'Google Trends', icon: '📈', lang: 'mix', genre: 'mainstream', weight: 0.45, fetch: googletrends },
   { id: 'wikipedia', label: 'Wikipedia', icon: '📚', lang: 'mix', genre: 'mainstream', weight: 0.35, fetch: wikipedia },
 ];

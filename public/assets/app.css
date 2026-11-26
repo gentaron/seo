@@ -579,3 +579,5 @@ select {
   .toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
   .foot { padding-bottom: 24px; }
 }
+
+.badge--scandal { background: rgba(255, 77, 109, 0.2); color: var(--hot); font-weight: 600; }
