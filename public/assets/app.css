@@ -452,3 +452,8 @@ select {
 .cross-link a:hover{text-decoration:underline}
 .cross-link>span{font-size:11px;color:var(--tx-3)}
 @media(max-width:600px){.cross-link{gap:3px;align-items:flex-start;flex-direction:column;padding:8px 14px}.cross-link>span{font-size:10px}}
+
+/* ---------- AI Pulse への入口 ---------- */
+.tablink-ai{align-self:center;margin-left:auto;display:inline-flex;align-items:center;gap:6px;flex:none;padding:5px 12px 5px 11px;border-radius:99px;font-size:12.5px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap;background:linear-gradient(90deg,#ff2d55,#ff9500 55%,#af52de);box-shadow:0 4px 16px -6px rgba(255,45,85,.6);transition:transform .25s cubic-bezier(.32,.72,0,1),box-shadow .25s}
+.tablink-ai:hover{transform:translateY(-1px);box-shadow:0 8px 22px -8px rgba(255,45,85,.75)}
+.tablink-ai small{font-size:9.5px;letter-spacing:.08em;padding:1px 5px;border-radius:6px;background:rgba(255,255,255,.25)}
