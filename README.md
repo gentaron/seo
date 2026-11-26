@@ -215,3 +215,15 @@ Undercurrent と AI Pulse の**すべての情報**（AI ランキング全件�
 | --- | --- |
 | `GET /api/export` | セクションごとの Markdown（JSON） |
 | `GET /api/export?format=md` | Markdown 1 本 |
+
+<!-- ecosystem:begin (自動生成: gentaron/infocollect の ecosystem/registry.json から。手で直さない) -->
+
+## つながり
+
+gentaron のリポジトリ群のうち **発信パイプライン** の一つ。Undercurrent — 世界のニッチ潮流・重要情報観測。
+
+- **同じ島**: [IDEAZ](https://github.com/gentaron/IDEAZ)、[genesisvault](https://github.com/gentaron/genesisvault)、[Gentarog](https://github.com/gentaron/Gentarog)、[VAIZ](https://github.com/gentaron/VAIZ)、[SAIZ](https://github.com/gentaron/SAIZ)、[genimage](https://github.com/gentaron/genimage)
+
+全体の地図 → [ecosystem](https://github.com/gentaron/infocollect/blob/HEAD/ecosystem/README.md)
+
+<!-- ecosystem:end -->
