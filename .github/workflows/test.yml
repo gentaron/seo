@@ -3,10 +3,12 @@ name: Undercurrent CI
 on:
   push:
     branches:
+      - main
       - claude/seo-keyword-search-site-lbznbv
       - feat/undercurrent-world-intelligence
   pull_request:
     branches:
+      - main
       - claude/seo-keyword-search-site-lbznbv
 
 permissions:
