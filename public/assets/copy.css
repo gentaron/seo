@@ -52,3 +52,19 @@
   .cp-row { grid-template-columns: auto 1fr; }
   .cp-act { grid-column: 2; }
 }
+
+@media (max-width: 760px) {
+  .cp-hero { padding: 30px 0 22px; text-align: left; }
+  .cp-title { font-size: 36px; }
+  .cp-lede { font-size: 15px; margin-left: 0; }
+  .cp-lede br { display: none; }
+  .cp-main { justify-items: stretch; }
+  .cp-big { position: sticky; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 5; padding: 16px 18px; border-radius: 18px; }
+  .cp-big__ic { width: 44px; height: 44px; border-radius: 13px; }
+  .cp-big__t { font-size: 18px; }
+  .cp-sub { justify-content: flex-start; }
+  .cp-time { text-align: left; }
+  .cp-list { margin-top: 32px; }
+  .cp-row { padding: 14px; gap: 12px; }
+  .cp-btn { height: 36px; }
+}

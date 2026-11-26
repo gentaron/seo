@@ -299,6 +299,34 @@
   </div>
 </dialog>
 
+
+<!-- ============ モバイル：下部タブバー ============ -->
+<nav class="mbar" aria-label="モバイルのメニュー">
+  <button class="tab mbar__i" data-tab="world" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 12l5.5-5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>レーダー</span></button>
+  <button class="tab mbar__i" data-tab="board" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l5-5 4 3 7-8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h5v5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>トレンド</span></button>
+  <button class="tab mbar__i" data-tab="feed" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="7" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="13" width="16" height="7" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>フィード</span></button>
+  <a class="mbar__i mbar__ai" href="/ai/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 20.5l-2.2-6.3L3.5 12l6.3-2.7z" fill="currentColor"/></svg><span>AI Pulse</span></a>
+  <button class="mbar__i" id="m-more" type="button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="18.5" cy="12" r="1.8" fill="currentColor"/></svg><span>その他</span></button>
+</nav>
+
+<dialog class="msheet" id="more-sheet" aria-label="その他のメニュー">
+  <div class="msheet__panel">
+    <div class="msheet__grab" aria-hidden="true"></div>
+    <div class="msheet__group">
+      <button class="tab msheet__row" data-tab="lexicon" aria-selected="false"><span class="msheet__ic" style="--c:#ff9500">辞</span>スラング大全<i aria-hidden="true">›</i></button>
+      <button class="tab msheet__row" data-tab="notes" aria-selected="false"><span class="msheet__ic" style="--c:#ffb800">★</span>ネタ帳<i aria-hidden="true">›</i></button>
+      <button class="tab msheet__row" data-tab="raw" aria-selected="false"><span class="msheet__ic" style="--c:#8e8e93">≡</span>生データ<i aria-hidden="true">›</i></button>
+      <button class="tab msheet__row" data-tab="sources" aria-selected="false"><span class="msheet__ic" style="--c:#34c759">◎</span>観測網<i aria-hidden="true">›</i></button>
+    </div>
+    <div class="msheet__group">
+      <a class="msheet__row" href="/export/"><span class="msheet__ic" style="--c:#0a84ff">⧉</span>まとめてコピー<i aria-hidden="true">›</i></a>
+      <a class="msheet__row" href="/ai/"><span class="msheet__ic" style="--c:#ff2d55">✦</span>AI Pulse<i aria-hidden="true">›</i></a>
+      <a class="msheet__row" href="https://qaiz.gen5wx.workers.dev/?tab=unified" target="_blank" rel="noopener noreferrer"><span class="msheet__ic" style="--c:#5e5ce6">↗</span>世界 × 市場の統合観測<i aria-hidden="true">›</i></a>
+    </div>
+    <button class="msheet__cancel" id="more-close" type="button">閉じる</button>
+  </div>
+</dialog>
+
 <div class="toast" id="toast" role="status" hidden></div>
 
 <footer class="foot">

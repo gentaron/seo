@@ -55,6 +55,11 @@
   <section aria-label="内訳" class="cp-list" id="list"></section>
 </main>
 
+<nav class="abar" aria-label="アプリの切り替え">
+  <a class="abar__i" href="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10c3-2.8 6-2.8 9 0s6 2.8 9 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" opacity=".5"/><path d="M3 16c3-2.8 6-2.8 9 0s6 2.8 9 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span>Undercurrent</span></a>
+  <a class="abar__i" href="/ai/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 20.5l-2.2-6.3L3.5 12l6.3-2.7z" fill="currentColor"/></svg><span>AI Pulse</span></a>
+  <a class="abar__i" href="/export/" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>まとめてコピー</span></a>
+</nav>
 <div class="toast" id="toast" role="status" hidden></div>
 <footer class="foot"><div class="wrap"><p>コピー内容は各媒体の公開情報から自動で推定したものです。真偽・品質は一次情報で確認してください。</p><p class="foot__links"><a href="/">Undercurrent</a><a href="/ai/">AI Pulse</a><a href="/api/export?format=md" target="_blank" rel="noopener">Markdown を直接開く</a></p></div></footer>
 <script type="module" src="/assets/copy.js"></script>
