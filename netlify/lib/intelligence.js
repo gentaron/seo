@@ -46,16 +46,16 @@ const CATEGORIES = [
   { id:'infrastructure', label:'社会インフラ', base:82, re:/(?:services? down|outage|flight stoppage|blackout|power failure|system outage|network disruption|インフラ障害|大規模障害|停電|運航停止)/i },
   { id:'geopolitics', label:'地政学・安全保障', base:80, re:/(?:ukrain|russia|crimea|kerch|military strike|missile|invasion|ceasefire|geopolitic|warfare|侵攻|軍事|停戦|戦争|台湾有事|クリミア|ウクライナ)/i },
   { id:'markets', label:'経済・金融', base:75, re:/(?:earnings|IPO|financial results|revenue forecast|stocks? (?:slide|plunge|surge)|inflation|interest rate|data center investment|net migration|immigration statistics|labour market statistics|純移民|移民統計|決算|株式市場|上場|株価|金融市場|物価上昇)/i },
-  { id:'policy', label:'政治・制度', base:66, re:/(?:regulat|court ruling|lawsuit|export controls?|export restrictions?|輸出規制|輸出管理|\bbans?\b|\bbanned\b|\bnominee\b|\bFDA\b|\bFAA\b|congress|senate|ballot measure|政府|法案|規制|指名撤回|禁止|裁判所|議会)/i },
-  { id:'technology', label:'科学・テクノロジー', base:76, re:/(?:research breakthrough|generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|asteroid impact crater|clinical trial|new semiconductor|quantum computer|new ai model|autonomous vehicle|self.driving|新技術|研究成果|量子コンピュータ|自動運転)/i },
+  { id:'policy', label:'政治・制度', base:66, re:/(?:regulat|court ruling|lawsuit|export controls?|export restrictions?|(?:regulated|restricted|banned) (?:NVIDIA )?GPUs?|規制されているNVIDIAのGPU|輸出規制|輸出管理|\bbans?\b|\bbanned\b|\bnominee\b|\bFDA\b|\bFAA\b|congress|senate|ballot measure|政府|法案|規制|指名撤回|禁止|裁判所|議会)/i },
+  { id:'technology', label:'科学・テクノロジー', base:76, re:/(?:research breakthrough|first direct detection|gravitational wave detection|new particle discovery|phase (?:III|3) clinical trial|millennium prize problem|generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|asteroid impact crater|clinical trial|new semiconductor|quantum computer|new ai model|autonomous vehicle|self.driving|新技術|研究成果|量子コンピュータ|自動運転)/i },
 ];
 // Research artifacts are leads, not independent reporting. Do not promote generic repositories.
-const RESEARCH_LEAD = /(?:generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|millennium prize problem)/i;
+const RESEARCH_LEAD = /(?:generalized riemann hypothesis|riemann hypothesis|リーマン予想|formal proof|形式証明|millennium prize problem|P versus NP|P vs NP|navier.stokes (?:existence|regularity)|birch.and.swinnerton.dyer|hodge conjecture)/i;
 const RESEARCH_RESULT = /(?:\bproof\b|\bproves?\b|\bdisproof\b|\btheorem\b|\bformaliz\w*\b|証明|反証)/i;
-const PERIODIC = /^(?:#|＃)|(?:throwbackthursday|thursdayfivelist|doorsday|wipwednesday|whiskerswednesday|いい風呂の日|自由律すぎ俳句|画像をなんでもいいので|今日の(?:写真|イラスト))/i;
+const PERIODIC = /(?:throwbackthursday|thursdayfivelist|doorsday|wipwednesday|whiskerswednesday|いい風呂の日|自由律すぎ俳句|画像をなんでもいいので|今日の(?:写真|イラスト))/i;
 const HYPOTHETICAL = /^(?:when |what if |imagine |もし)|(?:will occasionally just show up|wouldn't it be|shower thought)/i;
 const QUERY_ONLY = /^(?:report power outage|power outage|outage map|停電情報|停電|outage)$/i;
-const STRONG = /(?:generalized riemann hypothesis|riemann hypothesis|リーマン予想|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|critical vulnerability|actively exploited|zero.day|重大な脆弱性|net migration|純移民|export controls?|輸出規制|大規模障害)/i;
+const STRONG = /(?:generalized riemann hypothesis|riemann hypothesis|リーマン予想|orbital data cent[er]+|data cent(?:er|re)s? in space|宇宙データセンター|critical vulnerability|actively exploited|zero.day|重大な脆弱性|net migration|純移民|export controls?|(?:regulated|restricted|banned) (?:NVIDIA )?GPUs?|規制されているNVIDIAのGPU|輸出規制|大規模障害)/i;
 const MATERIAL = /(?:customer|personal data|個人情報|顧客|万人|万件|million|billion|全国|national|critical infrastructure|基幹インフラ|emergency|緊急)/i;
 const WORLD_ONLY = (source) => String(source).startsWith('world_');
 const CAUTION = /(?:\brumou?r\b|\brumored\b|\breportedly\b|\balleged?\b|\bclaims?\b|\bmay\b|\bcould\b|\bbefore\b|\bahead of\b|\bexpected\b|\bset to\b|疑惑|可能性|見通し|との報道|予測|うわさ)/i;
@@ -111,6 +111,8 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [], term
     if (s.src === 'github' && (!researchLead || isSuspiciousSignal(s))) continue;
     if (title.length < 16 || title.length > 300) continue;
     const cat = researchLead ? CATEGORIES.find((c) => c.id === 'technology') : CATEGORIES.find((c) => c.re.test(title));
+    // Routine papers are not automatically breakthroughs simply because arXiv published them.
+    if (String(s.src).startsWith('world_arxiv') && !STRONG.test(title) && !RESEARCH_LEAD.test(title) && !/(?:first direct detection|new particle discovery|gravitational wave detection)/i.test(title)) continue;
     if (!cat) continue;
     const ts = Number(s.ts) || now, ageH = Math.max(0, (now - ts) / 3.6e6);
     if (ageH > 72) continue;
@@ -135,7 +137,7 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [], term
     const attention = attentionValues.length ? Math.max(...attentionValues) : null;
     const priorityBand = impact < 70 ? 'low' : attention === null ? 'unknown-attention' : attention <= 45 ? 'hidden' : 'major';
     const discoveryPriority = Math.round(impact + (priorityBand === 'hidden' ? 20 : priorityBand === 'unknown-attention' ? 10 : 0) + 5 * Math.exp(-ageH / 24));
-    const researchOnly = g.evidence.every((e) => e.kind === 'research-artifact');
+    const researchOnly = g.evidence.every((e) => e.kind === 'research-artifact' || String(e.source).startsWith('world_arxiv'));
     const evidence=[], used = new Set();
     for (const e of g.evidence.sort((a,b)=>b.ts-a.ts)) {
       if (used.has(e.source)) continue;
@@ -148,7 +150,7 @@ export function buildWorldBrief(signals, { now = Date.now(), rejected = [], term
       corroborationStatus:nPublishers > 1 ? 'multiple-publisher-domains-not-independent-verification' : 'single-publisher-domain',
       sourceCount:nSources, publisherCount:nPublishers, evidence,
       status:nSources > 1 ? '複数チャネルで言及・真偽未検証' : '単独観測・真偽未検証',
-      caution:researchOnly ? '公開リポジトリによる研究上の主張です。証明・査読・独立検証は未確認です。' : g.cautious ? '予測・疑惑・時点依存の表現を含む可能性。一次情報で確認してください。' : '重要度は自動推定です。内容の真偽は一次情報で確認してください。',
+      caution:researchOnly ? '公開リポジトリまたはプレプリントによる研究上の主張です。証明・査読・独立検証は未確認です。' : g.cautious ? '予測・疑惑・時点依存の表現を含む可能性。一次情報で確認してください。' : '重要度は自動推定です。内容の真偽は一次情報で確認してください。',
     };
   }).filter((e) => e.priorityBand !== 'low').sort((a,b)=>b.discoveryPriority-a.discoveryPriority || b.impact-a.impact || b.at-a.at || a.id.localeCompare(b.id)).slice(0,30);
   return {
