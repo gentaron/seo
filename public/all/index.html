@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>オールコピー｜Undercurrent × AI Pulse</title>
+<meta name="description" content="重要情報レーダー・AI Pulse・Undercurrent で取ってきた情報を、1件ずつ詳細まで全部表示してコピー。">
+<meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icons/eureka/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/icons/eureka/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/ai.css">
+<link rel="stylesheet" href="/assets/allcopy.css">
+<script src="/assets/ai-theme.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">本文へスキップ</a>
+<nav class="gnav" aria-label="グローバル">
+  <div class="gnav__in">
+    <a class="gnav__back" href="/"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Undercurrent</a>
+    <span class="gnav__brand">オールコピー</span>
+    <div class="gnav__act">
+      <a class="gnav__link" href="/ai/">AI Pulse</a>
+      <button class="ibtn" id="theme" type="button" aria-label="配色を切り替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main id="main" class="wrap ac">
+  <header class="ac-hero">
+    <p class="eyebrow">ALL COPY</p>
+    <h1 class="ac-title">オールコピー</h1>
+    <p class="ac-lede">重要情報レーダー・AI Pulse・Undercurrent で取ってきた情報を、<br class="pc">タップした時に見える詳細まで<strong>1 件ずつ全部</strong>並べています。</p>
+    <p class="ac-stamp" id="stamp">読み込み中…</p>
+  </header>
+
+  <div class="ac-dock" id="dock">
+    <button class="ac-all" id="copy-all" type="button" disabled>
+      <span class="ac-all__ic" aria-hidden="true">
+        <svg class="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>
+        <svg class="i-done" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="ac-all__txt"><b id="copy-all-label">全部コピー</b><small id="copy-all-meta">—</small></span>
+    </button>
+    <button class="ac-dl" id="download" type="button" disabled aria-label="Markdown をダウンロード" title="Markdown をダウンロード">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <div class="ac-tools">
+    <label class="ac-find">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21l-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="項目を絞り込む（例：ChatGPT、構文）" aria-label="項目を絞り込む" spellcheck="false">
+    </label>
+    <nav class="ac-jump" id="jump" aria-label="グループへ移動"></nav>
+  </div>
+
+  <div id="groups" class="ac-groups" aria-live="polite">
+    <div class="ac-skel"><span></span><span></span><span></span></div>
+  </div>
+</main>
+
+<nav class="abar" aria-label="アプリの切り替え">
+  <a class="abar__i" href="/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10c3-2.8 6-2.8 9 0s6 2.8 9 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" opacity=".5"/><path d="M3 16c3-2.8 6-2.8 9 0s6 2.8 9 0" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span>Undercurrent</span></a>
+  <a class="abar__i" href="/ai/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 6.3L20.5 12l-6.3 2.2L12 20.5l-2.2-6.3L3.5 12l6.3-2.7z" fill="currentColor"/></svg><span>AI Pulse</span></a>
+  <a class="abar__i" href="/all/" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>オールコピー</span></a>
+</nav>
+<div class="toast" id="toast" role="status" hidden></div>
+<footer class="foot"><div class="wrap"><p>各媒体の公開情報から自動で推定したものです。真偽・品質は一次情報で確認してください。</p><p class="foot__links"><a href="/">Undercurrent</a><a href="/ai/">AI Pulse</a><a href="/api/allcopy?format=md" target="_blank" rel="noopener">Markdown を直接開く</a></p></div></footer>
+<script type="module" src="/assets/allcopy.js"></script>
+</body>
+</html>

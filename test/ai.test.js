@@ -113,16 +113,28 @@ test('describe：キーワードに「これは何」「なぜいま」が付く
   assert.match(opus.about, /Anthropic/);
 });
 
-test('export：両システムの全情報を Markdown で返す', async () => {
-  const { default: exp } = await import('../netlify/functions/export.mjs');
+test('allcopy：3 つの観測を項目ごとに詳細まで全部書き出す', async () => {
+  const { default: allcopy } = await import('../netlify/functions/allcopy.mjs');
+  const { default: legacy } = await import('../netlify/functions/export.mjs');
   const { runPipeline } = await import('../netlify/lib/pipeline.js');
   await runPipeline({ store, budgetMs: 5000, trigger: 'schedule' });
-  const j = await (await exp(req('/api/export'))).json();
-  assert.deepEqual(j.sections.map((s) => s.id), ['ai', 'trends', 'world', 'lexicon', 'history', 'raw', 'sources']);
-  assert.match(j.all, /# Undercurrent × AI Pulse 全データ/);
-  assert.match(j.all, /これは何: /);
-  assert.match(j.all, /\| 語 \| 言語 \|/);
-  const md = await exp(req('/api/export?format=md'));
+  const j = await (await allcopy(req('/api/allcopy'))).json();
+  assert.deepEqual(j.groups.map((g) => g.id), ['radar', 'ai', 'trends', 'lexicon', 'raw', 'history', 'sources']);
+  const ai = j.groups.find((g) => g.id === 'ai');
+  const snap = await store.get('ai-latest');
+  // AI Pulse：ランキング全件が、タップ時の中身（これは何・なぜ・見出し）つきで入る
+  assert.ok(ai.items.filter((i) => i.id.startsWith('ai-') && /^ai-\d+$/.test(i.id)).length === snap.top.length);
+  const first = ai.items[0].md;
+  for (const k of ['これは何: ', 'なぜいま話題: ', '層ごとの熱量: ', '実際に話題になっている見出し:']) assert.ok(first.includes(k), k);
+  // SNS トレンド：意味・台帳・媒体・用例まで入る
+  const tr = j.groups.find((g) => g.id === 'trends').items[0].md;
+  for (const k of ['意味・背景', '台帳: ', '出現した媒体: ', '用例（実際の投稿・見出し）:']) assert.ok(tr.includes(k), k);
+  assert.match(tr, /Urban Dictionary|Wikipedia/);
+  // 全文 = 見出し + 全グループ
+  assert.ok(j.all.startsWith('# Undercurrent × AI Pulse オールコピー'));
+  assert.equal(j.chars, j.all.length);
+  const md = await allcopy(req('/api/allcopy?format=md'));
   assert.match(md.headers.get('content-type'), /markdown/);
   assert.equal((await md.text()).length, j.all.length);
+  assert.equal((await legacy(req('/api/export'))).status, 200);
 });

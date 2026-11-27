@@ -579,3 +579,14 @@ select {
   .toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
   .foot { padding-bottom: 24px; }
 }
+
+/* オールコピー：タブ列の中の “項目” として */
+.tablink-all { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--accent-tx); white-space: nowrap; }
+.tablink-all::before { content: "⧉"; margin-right: 5px; font-weight: 400; }
+.tablink-all:hover { background: var(--fill); text-decoration: none; }
+@media (max-width: 760px) {
+  .top__act .navlink { display: inline-flex; color: var(--accent); }
+  .msheet__row--hero { min-height: 64px; }
+  .msheet__row--hero > span:not(.msheet__ic) { display: grid; gap: 1px; font-weight: 600; }
+  .msheet__row--hero small { font-size: 12px; font-weight: 400; color: var(--tx-2); }
+}
