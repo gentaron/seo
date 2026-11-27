@@ -61,11 +61,12 @@ async function writeRobots() {
 /** ブラウザ用スクリプトは import できない（document 参照）ので構文だけ検査する */
 async function checkBrowserSyntax() {
   const { execFileSync } = await import('node:child_process');
-  for (const f of ['public/assets/app.js', 'public/assets/ai.js', 'public/assets/ai-theme.js']) {
+  for (const f of ['public/assets/app.js', 'public/assets/ai.js', 'public/assets/ai-theme.js', 'public/assets/allcopy.js']) {
     execFileSync(process.execPath, ['--check', join(root, f)], { stdio: 'inherit' });
   }
   await readFile(join(root, 'public/index.html'), 'utf8');
   await readFile(join(root, 'public/ai/index.html'), 'utf8');
+  await readFile(join(root, 'public/all/index.html'), 'utf8');
 }
 
 async function writeBuildInfo() {

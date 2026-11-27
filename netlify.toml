@@ -15,6 +15,12 @@
 [functions]
   node_bundler = "esbuild"
 
+# 旧名 /export/ → オールコピー
+[[redirects]]
+  from   = "/export/*"
+  to     = "/all/"
+  status = 301
+
 # /api/* を Functions にマッピング
 [[redirects]]
   from   = "/api/*"

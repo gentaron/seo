@@ -1,0 +1,97 @@
+/* オールコピー — ai.css のトークンの上に載せる */
+.gnav__link { font-size: 13px; color: var(--tx-2); margin-right: 6px; }
+.gnav__link:hover { color: var(--tx); text-decoration: none; }
+.ac { padding-bottom: 24px; }
+.ac-hero { padding: clamp(40px, 7vw, 80px) 0 22px; }
+.ac-title { margin: 0; font-size: clamp(40px, 6.6vw, 68px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.05; }
+.ac-lede { margin: 14px 0 0; max-width: 680px; color: var(--tx-2); font-size: clamp(16px, 1.9vw, 19px); line-height: 1.55; }
+.ac-lede strong { color: var(--tx); }
+.ac-stamp { margin: 10px 0 0; font-size: 12.5px; color: var(--tx-3); font-variant-numeric: tabular-nums; }
+
+/* コピーの操作盤（上部に貼り付く） */
+.ac-dock { position: sticky; top: 52px; z-index: 20; display: flex; gap: 10px; align-items: stretch; margin: 0 -16px 14px; padding: 10px 16px 12px; background: linear-gradient(var(--bg) 78%, color-mix(in srgb, var(--bg) 0%, transparent)); }
+.ac-all {
+  flex: 1; border: 0; cursor: pointer; display: flex; align-items: center; gap: 14px; text-align: left;
+  padding: 14px 18px; border-radius: 18px; background: var(--accent); color: #fff;
+  box-shadow: 0 12px 34px -14px color-mix(in srgb, var(--accent) 85%, transparent);
+  transition: transform 0.35s var(--spring), background 0.3s var(--ease);
+}
+.ac-all:hover:not(:disabled) { transform: translateY(-1px); }
+.ac-all:active:not(:disabled) { transform: scale(0.985); }
+.ac-all:disabled { opacity: 0.55; cursor: default; }
+.ac-all.is-done { background: #28a745; }
+.ac-all__ic { width: 44px; height: 44px; border-radius: 13px; background: rgba(255, 255, 255, 0.2); display: grid; place-items: center; flex: none; }
+.ac-all__ic svg { width: 23px; height: 23px; grid-area: 1 / 1; transition: opacity 0.25s, transform 0.4s var(--spring); }
+.ac-all .i-done { opacity: 0; transform: scale(0.5); }
+.ac-all.is-done .i-done { opacity: 1; transform: none; }
+.ac-all.is-done .i-copy { opacity: 0; transform: scale(0.5); }
+.ac-all__txt { display: grid; gap: 2px; min-width: 0; }
+.ac-all__txt b { font-size: 19px; letter-spacing: -0.02em; }
+.ac-all__txt small { font-size: 12.5px; opacity: 0.88; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-dl { width: 72px; flex: none; border: 0; cursor: pointer; border-radius: 18px; background: var(--card); color: var(--accent-tx); box-shadow: var(--shadow); display: grid; place-items: center; }
+.ac-dl svg { width: 24px; height: 24px; }
+.ac-dl:disabled { opacity: 0.5; }
+
+.ac-tools { display: grid; gap: 12px; margin-bottom: 8px; }
+.ac-find { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border-radius: 12px; background: var(--fill); }
+.ac-find svg { width: 17px; height: 17px; color: var(--tx-3); flex: none; }
+.ac-find input { border: 0; background: none; outline: none; width: 100%; font: inherit; font-size: 16px; color: var(--tx); }
+.ac-find input::placeholder { color: var(--tx-3); }
+.ac-jump { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.ac-jump::-webkit-scrollbar { display: none; }
+.ac-jump a { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--fill); color: var(--tx); font-size: 13.5px; font-weight: 500; }
+.ac-jump a:hover { background: var(--fill-2); text-decoration: none; }
+.ac-jump a b { font-weight: 600; color: var(--tx-2); font-variant-numeric: tabular-nums; }
+
+/* グループ */
+.ac-groups { display: grid; gap: 40px; margin-top: 26px; }
+.ac-g { scroll-margin-top: 150px; }
+.ac-g__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.ac-g__head h2 { margin: 0; font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; letter-spacing: -0.03em; }
+.ac-g__head h2 small { margin-left: 8px; font-size: 0.5em; font-weight: 600; color: var(--tx-3); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.ac-g__note { margin: 6px 0 0; font-size: 14px; color: var(--tx-2); }
+.ac-btn { border: 0; cursor: pointer; height: 36px; padding: 0 16px; border-radius: 99px; background: var(--fill); color: var(--accent-tx); font-size: 14px; font-weight: 600; white-space: nowrap; transition: background 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.ac-btn:hover { background: var(--fill-2); }
+.ac-btn svg { width: 15px; height: 15px; }
+.ac-btn.is-done { background: color-mix(in srgb, #28a745 16%, transparent); color: #1f9d48; }
+.ac-list { display: grid; gap: 12px; }
+.ac-empty { padding: 26px; text-align: center; color: var(--tx-3); background: var(--card); border-radius: var(--r-l); }
+
+/* 項目カード（中身は常に全部見える） */
+.ac-it { background: var(--card); border-radius: var(--r-l); box-shadow: var(--shadow); padding: 18px 20px 16px; content-visibility: auto; contain-intrinsic-size: auto 260px; }
+.ac-it__top { display: flex; align-items: flex-start; gap: 12px; }
+.ac-it__top h3 { margin: 0; flex: 1; min-width: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; overflow-wrap: anywhere; }
+.ac-it__meta { display: block; margin-top: 3px; font-size: 12.5px; font-weight: 500; color: var(--tx-3); letter-spacing: 0; }
+.ac-it .ac-btn { height: 32px; padding: 0 12px; font-size: 13px; flex: none; }
+.ac-body { margin-top: 10px; font-size: 14.5px; line-height: 1.65; color: var(--tx); overflow-wrap: anywhere; }
+.ac-body ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.ac-body li { position: relative; padding-left: 14px; }
+.ac-body li::before { content: ""; position: absolute; left: 2px; top: 0.72em; width: 4px; height: 4px; border-radius: 50%; background: var(--tx-3); }
+.ac-body ul ul { margin: 4px 0 2px; padding: 8px 12px; border-radius: 12px; background: var(--bg-2); gap: 6px; }
+.ac-body ul ul li { font-size: 13.5px; color: var(--tx-2); }
+.ac-body ul ul ul { background: none; padding: 2px 0 0; }
+.ac-body .k { color: var(--tx-2); font-weight: 600; }
+.ac-body a { color: var(--accent-tx); }
+.ac-skel { display: grid; gap: 12px; }
+.ac-skel span { height: 120px; border-radius: var(--r-l); background: var(--fill); animation: shimmer 1.4s ease-in-out infinite; }
+.ac-it[hidden], .ac-g[hidden] { display: none !important; }
+
+@media (max-width: 760px) {
+  .ac-hero { padding: 26px 0 12px; }
+  .ac-title { font-size: 36px; }
+  .ac-lede { font-size: 15px; }
+  .ac-lede br { display: none; }
+  .ac-dock { position: fixed; top: auto; left: 0; right: 0; bottom: calc(60px + env(safe-area-inset-bottom)); margin: 0; padding: 10px 12px; z-index: 44; background: linear-gradient(transparent, var(--bg) 30%); }
+  .ac-all { padding: 10px 14px; border-radius: 16px; }
+  .ac-all__ic { width: 38px; height: 38px; border-radius: 11px; }
+  .ac-all__txt b { font-size: 17px; }
+  .ac-dl { width: 56px; border-radius: 16px; }
+  .ac { padding-bottom: 90px; }
+  .ac-groups { gap: 32px; margin-top: 20px; }
+  .ac-g { scroll-margin-top: 64px; }
+  .ac-jump { margin: 0 -16px; padding: 2px 16px; }
+  .ac-it { padding: 16px; border-radius: 18px; }
+  .ac-it__top h3 { font-size: 17px; }
+  .ac-body { font-size: 14px; }
+  .ac-g__head .ac-btn { width: 100%; justify-content: center; height: 40px; }
+}

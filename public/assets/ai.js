@@ -29,6 +29,10 @@ const STATUS = {
   steady: '定着',
   cooling: '失速',
 };
+const EVENT_JA = {
+  launch: '新登場・発表', bench: '性能・比較', open: 'オープン公開', try: '使ってみた・解説', money: '資金・買収', policy: '規制・訴訟',
+  risk: '不具合・安全性', price: '料金・提供条件', debate: '賛否・炎上', deal: '提携・組み込み', people: '人事', research: '研究成果',
+};
 const SRC_LABEL = {
   hackernews: 'Hacker News', reddit: 'Reddit', lobsters: 'Lobsters', devto: 'DEV', mastodon: 'Mastodon', bluesky: 'Bluesky',
   github: 'GitHub', hfmodels: 'Hugging Face', hfspaces: 'HF Spaces', hfpapers: 'HF Papers', newsen: 'Google News',
@@ -146,11 +150,14 @@ function move(t) {
   return '<span class="row__mv dn">—</span>';
 }
 function subline(t) {
-  const bits = [];
-  if (t.org) bits.push(t.org);
-  bits.push(t.catLabel);
-  if (t.facts?.[0]) bits.push(t.facts[0].label);
-  return bits.join(' · ');
+  return t.about || [t.org, t.catLabel].filter(Boolean).join(' · ');
+}
+function angleChip(t) {
+  return t.angle ? `<span class="chip angle">${esc(t.angle)}</span>` : '';
+}
+function quoteHtml(q) {
+  if (!q) return '';
+  return `<blockquote class="quote"><p>「${esc(q.t)}」</p><cite>${esc(SRC_LABEL[q.src] || q.src)}${q.pub ? ` · ${esc(q.pub)}` : ''}</cite></blockquote>`;
 }
 
 /* ---------------- API ---------------- */
@@ -220,9 +227,12 @@ function renderSpot(s) {
   const facts = (t.facts || []).slice(0, 4);
   el.innerHTML = `
     <div>
-      <div class="spot__k"><span class="spot__no">NO.1</span>${statusChip(t.status)}<span class="chip">${esc(t.catLabel)}</span></div>
-      <h3 class="spot__name">${esc(t.name.length <= 24 ? t.name.replace(/-/g, '\u2011') : t.name)}</h3>
-      <p class="spot__org">${esc([t.org, layersText(t)].filter(Boolean).join(' — '))}</p>
+      <div class="spot__k"><span class="spot__no">NO.1</span>${statusChip(t.status)}${angleChip(t)}<span class="chip">${esc(t.catLabel)}</span></div>
+      <h3 class="spot__name${t.name.length > 13 ? ' is-long' : ''}">${t.name.length <= 16 ? `<span>${esc(t.name)}</span>` : esc(t.name)}</h3>
+      <div class="ctx ctx--dark">
+        <p><span class="ctx__k">これは何？</span>${esc(t.about || '—')}</p>
+        <p><span class="ctx__k">なぜいま？</span>${esc(t.why || '')}</p>
+      </div>
       <ul class="spot__facts">${facts.map((f) => `<li><i style="background:${famColor(f.fam)}"></i>${esc(f.label)}</li>`).join('')}</ul>
       <span class="spot__cta">根拠をすべて見る<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </div>
@@ -241,9 +251,10 @@ function renderRise(s) {
   $('#rise').innerHTML = list
     .map(
       (t) => `<button class="rcard" role="listitem" data-id="${esc(t.id)}">
-        <span style="display:flex;gap:6px;flex-wrap:wrap">${statusChip(t.status)}<span class="chip">${esc(t.catLabel)}</span></span>
+        <span style="display:flex;gap:6px;flex-wrap:wrap">${statusChip(t.status)}${angleChip(t)}</span>
         <span class="rcard__name">${esc(t.name)}</span>
-        <span class="rcard__fact">${esc((t.facts || []).slice(0, 2).map((f) => f.label).join(' / '))}</span>
+        <span class="rcard__about">${esc(t.about || '')}</span>
+        <span class="rcard__fact">${esc(t.why || '')}</span>
         <span class="rcard__foot"><span class="rcard__hype">${t.hype}<small>HYPE</small></span>${dots(t)}</span>
       </button>`,
     )
@@ -263,11 +274,12 @@ function renderRank({ animate = false } = {}) {
   $('#rank').innerHTML = shown
     .map(
       (t, i) => `<li class="row${animate ? ' is-enter' : ''}" style="${animate ? `animation-delay:${Math.min(i, 14) * 22}ms` : ''}">
-      <button class="row__btn" data-id="${esc(t.id)}" aria-label="${t.rank}位 ${esc(t.name)}、Hype ${t.hype}、${esc(STATUS[t.status] || '')}">
+      <button class="row__btn" data-id="${esc(t.id)}" aria-label="${t.rank}位 ${esc(t.name)}、Hype ${t.hype}、${esc(STATUS[t.status] || '')}。${esc(t.about || '')}">
         <span class="row__no"><b>${t.rank}</b>${move(t)}</span>
         <span class="row__main">
-          <span class="row__name"><b>${esc(t.name)}</b>${t.status !== 'steady' ? statusChip(t.status) : ''}</span>
+          <span class="row__name"><b>${esc(t.name)}</b>${t.status !== 'steady' ? statusChip(t.status) : ''}${angleChip(t)}</span>
           <span class="row__sub">${esc(subline(t))}</span>
+          <span class="row__why">${esc(t.why || '')}</span>
         </span>
         <span class="row__meta">${dots(t)}<span class="row__spark">${chart(t.spark, { w: 96, h: 30, stroke: t.z >= 0.5 ? 'var(--hot-1)' : 'var(--tx-3)', dot: false })}</span></span>
         <span class="row__hype"><b>${t.hype}</b><span class="bar"><i style="transform:scaleX(${(t.hype / 100).toFixed(3)})"></i></span></span>
@@ -377,7 +389,13 @@ function openSheet(id, { push = true } = {}) {
   $('#sh-body').innerHTML = `
     <div class="d-k">${statusChip(t.status)}<span class="chip">${esc(t.catLabel)}</span><span class="chip">#${t.rank}${t.prevRank ? `（前回 ${t.prevRank}位）` : '（初登場）'}</span></div>
     <h2 class="d-title" id="sh-title">${esc(t.name)}</h2>
-    <p class="d-org">${esc([t.org, layersText(t)].filter(Boolean).join(' — '))}</p>
+    <p class="d-org">${esc([t.org, t.catLabel].filter(Boolean).join(' · '))}</p>
+    <section class="d-ctx">
+      <div><h3>これは何？</h3><p>${esc(t.about || '辞書に説明がまだありません。下の見出しから文脈を確認してください。')}</p></div>
+      <div><h3>なぜいま話題？</h3><p>${esc(t.why || '')}</p>
+        ${(t.events || []).length ? `<p class="d-tags">${(t.events || []).map((id) => `<span class="chip angle">${esc(EVENT_JA[id] || id)}</span>`).join('')}</p>` : ''}
+        ${quoteHtml(t.quote)}</div>
+    </section>
     <div class="d-hero">${ring(t.hype, { small: true })}<div class="d-chart">${chart(t.spark, { h: 86 })}<small>熱量の推移（観測ごと・直近 ${t.spark?.length || 1} 回）</small></div></div>
     <dl class="d-metrics">
       <div><dt>熱量（層の合計）</dt><dd>${t.attention.toFixed(2)}</dd></div>
@@ -391,12 +409,12 @@ function openSheet(id, { push = true } = {}) {
     <div class="d-fams">${famRows
       .map(([f, v]) => `<div class="d-fam" style="--c:${famColor(f)}"><span><i></i>${esc(FAM[f])}</span><span class="bar"><i style="transform:scaleX(${Math.min(1, v).toFixed(3)})"></i></span><b>${Math.round(v * 100)}</b></div>`)
       .join('')}</div>
-    <h3 class="d-h">根拠（${t.n}件のシグナルから上位）</h3>
+    <h3 class="d-h">実際に話題になっている見出し（${t.n}件のシグナルから上位）</h3>
     <ol class="d-ev">${(t.ev || [])
       .map(
         (e) => `<li><a href="${esc(e.u)}" target="_blank" rel="noopener noreferrer">
           <b>${esc(e.t)}</b>
-          <small><i style="--c:${famColor(e.fam)}"></i>${esc(SRC_LABEL[e.src] || e.src)}${e.pub && e.pub !== e.c ? ` · ${esc(e.pub)}` : ''}${e.c ? ` · ${esc(e.c)}` : ''} · ${esc(ago(e.ts))}</small>
+          <small>${e.tag ? `<span class="chip angle">${esc(e.tag)}</span>` : ''}<i style="--c:${famColor(e.fam)}"></i>${esc(SRC_LABEL[e.src] || e.src)}${e.pub && e.pub !== e.c ? ` · ${esc(e.pub)}` : ''}${e.c ? ` · ${esc(e.c)}` : ''} · ${esc(ago(e.ts))}</small>
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7M13 3L4 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a></li>`,
       )
