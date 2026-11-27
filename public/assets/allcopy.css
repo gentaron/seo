@@ -95,3 +95,19 @@
   .ac-body { font-size: 14px; }
   .ac-g__head .ac-btn { width: 100%; justify-content: center; height: 40px; }
 }
+
+/* コピーの形式（圧縮／圧縮＋リンク／完全） */
+.ac-mode { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--fill); margin-top: 6px; }
+.ac-mode button { border: 0; cursor: pointer; background: transparent; border-radius: 11px; padding: 9px 8px; display: grid; gap: 1px; justify-items: center; color: var(--tx); transition: background 0.25s var(--ease), box-shadow 0.25s; }
+.ac-mode button b { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.ac-mode button small { font-size: 11.5px; color: var(--tx-2); font-variant-numeric: tabular-nums; }
+.ac-mode button[aria-checked="true"] { background: var(--card); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12); }
+:root[data-theme="dark"] .ac-mode button[aria-checked="true"] { background: #636366; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ac-mode button[aria-checked="true"] { background: #636366; } }
+.ac-mode-note { margin: 8px 2px 0; font-size: 12.5px; color: var(--tx-2); line-height: 1.5; }
+.ac-preview { margin: 10px 0 0; border-radius: 14px; background: var(--card); box-shadow: var(--shadow); }
+.ac-preview summary { cursor: pointer; list-style: none; padding: 12px 16px; font-size: 14px; font-weight: 600; color: var(--accent-tx); }
+.ac-preview summary::-webkit-details-marker { display: none; }
+.ac-preview summary::after { content: " ›"; display: inline-block; transition: transform 0.25s; }
+.ac-preview[open] summary::after { transform: rotate(90deg); }
+.ac-preview pre { margin: 0; padding: 0 16px 16px; max-height: 420px; overflow: auto; font: 12px/1.6 var(--mono); color: var(--tx-2); white-space: pre-wrap; word-break: break-word; }

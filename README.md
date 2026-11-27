@@ -220,5 +220,10 @@ MIT
 | エンドポイント | 内容 |
 | --- | --- |
 | `GET /api/allcopy` | グループ → 項目の JSON（各項目に Markdown） |
-| `GET /api/allcopy?format=md` | Markdown 1 本 |
+| `GET /api/allcopy?format=md` | 完全版 Markdown 1 本 |
+| `GET /api/allcopy?format=compact` | 圧縮版（`&links=1` で短縮 URL つき） |
+
+### 圧縮（既定）
+
+同じ項目・同じ数値を約 1/10 の文字数で（`netlify/lib/compact.js`）。凡例を先頭に 1 回だけ置いて各行は略号、同じ見出しは全体で 1 回、見出し中の項目名は「〃」、推移は「開始→最大→現在」、「なぜいま話題」の文は 状態＋出来事の型＋層 から再構成できるので省略、名前の繰り返しは `A9`／`T3` の参照、URL は省略（媒体名は残す）。リンクが要る時は「圧縮＋リンク」。
 | `GET /api/export` | 旧名（同じ内容）。`/export/` は `/all/` へ転送 |

@@ -37,6 +37,17 @@
     <p class="ac-stamp" id="stamp">読み込み中…</p>
   </header>
 
+  <div class="ac-mode" role="radiogroup" aria-label="コピーの形式" id="mode">
+    <button type="button" role="radio" aria-checked="true" data-mode="compact"><b>圧縮</b><small id="m-compact">—</small></button>
+    <button type="button" role="radio" aria-checked="false" data-mode="links"><b>圧縮＋リンク</b><small id="m-links">—</small></button>
+    <button type="button" role="radio" aria-checked="false" data-mode="full"><b>完全</b><small id="m-full">—</small></button>
+  </div>
+  <p class="ac-mode-note" id="mode-note">同じ情報を約 1/10 の文字数に。凡例 1 行＋略号、重複する見出しは 1 回だけ、URL は省略（媒体名は残す）。</p>
+  <details class="ac-preview" id="preview">
+    <summary>コピーされる中身を見る</summary>
+    <pre id="preview-text"></pre>
+  </details>
+
   <div class="ac-dock" id="dock">
     <button class="ac-all" id="copy-all" type="button" disabled>
       <span class="ac-all__ic" aria-hidden="true">

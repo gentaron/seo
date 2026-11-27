@@ -138,3 +138,20 @@ test('allcopy：3 つの観測を項目ごとに詳細まで全部書き出す',
   assert.equal((await md.text()).length, j.all.length);
   assert.equal((await legacy(req('/api/export'))).status, 200);
 });
+
+test('compact：同じ項目を全部残したまま 1/8 以下の文字数', async () => {
+  const { default: allcopy } = await import('../netlify/functions/allcopy.mjs');
+  const j = await (await allcopy(req('/api/allcopy'))).json();
+  const c = j.compact.text;
+  assert.ok(c.length * 8 < j.all.length, `compact ${c.length} vs full ${j.all.length}`);
+  assert.ok(!/https?:\/\//.test(c), '圧縮版に URL は含めない');
+  const ai = await store.get('ai-latest');
+  const snap = await store.get('latest');
+  for (const t of ai.top) assert.ok(c.includes(`A${t.rank} ${t.name} H${t.hype}`), `AI ${t.name}`);
+  snap.terms.forEach((t, i) => assert.ok(c.includes(`T${i + 1} ${t.t} ${t.score}`), `trend ${t.t}`));
+  (snap.analysis?.events || []).forEach((e, i) => assert.ok(c.includes(`R${i + 1} `) && c.includes(e.title), `radar ${e.title}`));
+  assert.ok(j.compact.items['ai-1'].startsWith('A1 '));
+  assert.ok(/<[a-z0-9.-]+\.[a-z]{2,}/.test(j.compactLinks.text), 'リンク版には短縮 URL');
+  const txt = await allcopy(req('/api/allcopy?format=compact'));
+  assert.equal((await txt.text()).length, c.length);
+});

@@ -9,6 +9,18 @@ const COPY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" 
 
 let data = null;
 let query = '';
+let mode = 'compact'; // compact | links | full
+try {
+  mode = localStorage.getItem('uc.copymode') || 'compact';
+} catch {
+  /* 既定のまま */
+}
+const MODE_NOTE = {
+  compact: '同じ情報を約 1/10 の文字数に。凡例 1 行＋略号、重複する見出しは 1 回だけ、URL は省略（媒体名は残す）。',
+  links: '圧縮版に、根拠・用例の短縮 URL を付けたもの。',
+  full: '画面に並んでいる詳細を、ラベル・URL まですべてそのまま（Markdown）。',
+};
+const pack = () => (mode === 'links' ? data.compactLinks : data.compact);
 
 /* ---------------- 表示：自前の Markdown（この API が出す書式だけ）を HTML に ---------------- */
 function inline(text) {
@@ -103,7 +115,23 @@ function flash(btn, label = 'コピー済み') {
 /* ---------------- 絞り込み ---------------- */
 const matches = (it) => !query || `${it.title}\n${it.md}`.toLowerCase().includes(query);
 
+/** 1 件ぶんのテキスト（圧縮モードでは圧縮行、無い項目は完全版） */
+function itemText(it) {
+  if (mode === 'full') return it.md;
+  return pack().items[it.id] || it.md;
+}
+
+function groupText(g) {
+  if (mode === 'full') return g.md;
+  return pack().groups[g.id] || g.md;
+}
+
 function visibleText() {
+  if (mode !== 'full') {
+    if (!query) return pack().text;
+    const lines = data.groups.flatMap((g) => g.items.filter(matches).map(itemText));
+    return `${pack().legend}\n#絞り込み「${query}」${lines.length}件\n${lines.join('\n')}\n`;
+  }
   if (!query) return data.all;
   const parts = data.groups
     .map((g) => {
@@ -121,6 +149,13 @@ function updateDock() {
   $('#copy-all-label').textContent = query ? `表示中の ${fmt(shown)} 件をコピー` : `全部コピー（${fmt(total)} 件）`;
   $('#copy-all-meta').textContent = `${fmt(text.length)} 文字 · 約 ${fmt(Math.round(text.length / 1.6))} トークン`;
   $('#copy-all').disabled = shown === 0;
+  const full = data.all.length;
+  for (const [k, len] of [['compact', data.compact.text.length], ['links', data.compactLinks.text.length], ['full', full]]) {
+    $(`#m-${k}`).textContent = `${fmt(len)}字${k === 'full' ? '' : ` · 1/${(full / len).toFixed(1)}`}`;
+  }
+  for (const b of $$('#mode [data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
+  $('#mode-note').textContent = MODE_NOTE[mode];
+  if ($('#preview').open) $('#preview-text').textContent = text;
   $('#download').disabled = shown === 0;
 }
 
@@ -195,11 +230,11 @@ document.addEventListener('click', async (ev) => {
   let label;
   if (gi) {
     const g = data.groups.find((x) => x.id === gi.dataset.copyGroup);
-    text = g.md;
+    text = mode === 'full' ? g.md : `${pack().legend}\n${groupText(g)}\n`;
     label = `「${g.label}」${g.items.length} 件`;
   } else {
     const it = data.groups.flatMap((g) => g.items).find((x) => x.id === ii.dataset.copyItem);
-    text = it.md;
+    text = itemText(it);
     label = `「${it.title}」`;
   }
   const btn = gi || ii;
@@ -218,12 +253,27 @@ $('#copy-all').addEventListener('click', async () => {
   } else toast('コピーできませんでした');
 });
 
+$('#mode').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-mode]');
+  if (!b || !data) return;
+  mode = b.dataset.mode;
+  try {
+    localStorage.setItem('uc.copymode', mode);
+  } catch {
+    /* 保存できなくても動く */
+  }
+  updateDock();
+});
+$('#preview').addEventListener('toggle', () => {
+  if ($('#preview').open && data) $('#preview-text').textContent = visibleText();
+});
+
 $('#download').addEventListener('click', () => {
   if (!data) return;
-  const blob = new Blob([visibleText()], { type: 'text/markdown;charset=utf-8' });
+  const blob = new Blob([visibleText()], { type: `${mode === 'full' ? 'text/markdown' : 'text/plain'};charset=utf-8` });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `undercurrent-allcopy-${new Date().toISOString().slice(0, 10)}.md`;
+  a.download = `undercurrent-allcopy-${mode}-${new Date().toISOString().slice(0, 10)}.${mode === 'full' ? 'md' : 'txt'}`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
